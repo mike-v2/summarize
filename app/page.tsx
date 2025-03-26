@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 import { generateVideoSummary } from "@/app/actions/summary";
-import type { SummaryResponse } from "@/schemas/summary";
+import { SummaryResponse } from "@/schemas/summary";
 
 export default function Home() {
   const [url, setUrl] = useState("");

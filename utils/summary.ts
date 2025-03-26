@@ -1,13 +1,8 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { SUMMARIZE_SYSTEM_PROMPT } from "@/prompts/summarize";
-import { responseSchema, type SummaryResponse } from "@/schemas/summary";
-
-export type SummaryResult = {
-  success: boolean;
-  data?: SummaryResponse;
-  error?: string;
-};
+import { responseSchema } from "@/schemas/summary";
+import type { SummaryResult } from "@/types/summary";
 
 export async function generateSummary(
   transcript: string

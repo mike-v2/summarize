@@ -6,11 +6,15 @@ export const evidenceSchema = z.object({
   type: z.enum(["primary", "secondary", "tertiary"]),
 });
 
+export type Evidence = z.infer<typeof evidenceSchema>;
+
 // Schema for claim
 export const claimSchema = z.object({
   claim_text: z.string(),
   evidence: z.array(evidenceSchema),
 });
+
+export type Claim = z.infer<typeof claimSchema>;
 
 // Schema for summary
 export const summarySchema = z.object({
@@ -18,6 +22,8 @@ export const summarySchema = z.object({
   claims: z.array(claimSchema),
   conclusion: z.string(),
 });
+
+export type Summary = z.infer<typeof summarySchema>;
 
 // Schema for knowledge triple
 export const tripleSchema = z.object({
@@ -28,6 +34,8 @@ export const tripleSchema = z.object({
   source: z.string(),
 });
 
+export type Triple = z.infer<typeof tripleSchema>;
+
 // Schema for the complete response
 export const responseSchema = z.object({
   summary: summarySchema,
@@ -35,6 +43,3 @@ export const responseSchema = z.object({
 });
 
 export type SummaryResponse = z.infer<typeof responseSchema>;
-export type Evidence = z.infer<typeof evidenceSchema>;
-export type Claim = z.infer<typeof claimSchema>;
-export type Triple = z.infer<typeof tripleSchema>;
