@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import AuthStatus from "@/components/authStatus";
 
 import { generateVideoSummary } from "@/app/actions/summary";
 import { SummaryResponse } from "@/schemas/summary";
@@ -34,7 +35,10 @@ export default function Home() {
   return (
     <main className="min-h-screen p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">YouTube Video Summarizer</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">YouTube Video Summarizer</h1>
+          <AuthStatus />
+        </div>
 
         <form onSubmit={handleSubmit} className="mb-8">
           <div className="flex gap-4">
@@ -103,7 +107,8 @@ export default function Home() {
                     <span className="text-gray-600">{triple.relation}</span>{" "}
                     <span className="font-medium">{triple.object}</span>
                     <span className="text-gray-500 text-xs ml-2">
-                      ({triple.evidence_type} - {triple.source})
+                      ({triple.evidence[0]?.type} - {triple.evidence[0]?.source}
+                      )
                     </span>
                   </li>
                 ))}
