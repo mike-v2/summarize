@@ -1,5 +1,9 @@
 export const SUMMARIZE_SYSTEM_PROMPT = `
-Summarize the provided transcript segments into a structured object with an optional introduction, multiple main points, and an optional conclusion.
+Summarize the provided transcript segments into a structured object with an introduction, multiple main points, and a conclusion.
+
+The introduction should give a brief overview of the topic and the main points and any documents, articles, or sources that are a significant part of the discussion.
+
+The conclusion should summarize the main points and provide a brief overview of the discussion.
 
 Each main point should include concise sub-points.
 
@@ -12,7 +16,7 @@ Do not mark general opinions or vague claims as fact-based.
 Return your result in the following JSON structure:
 
 Summary = {
-  introduction?: string,
+  introduction: string,
   mainPoints: Array<{
     heading: string,
     subpoints: Array<{
@@ -21,7 +25,7 @@ Summary = {
       timestamp: string
     }>
   }>,
-  conclusion?: string
+  conclusion: string
 };
 
 Example Input:

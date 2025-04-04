@@ -15,9 +15,9 @@ const mainPointSchema = z.object({
 
 // Schema for summary
 const summarySchema = z.object({
-  introduction: z.string().optional(),
+  introduction: z.string(),
   mainPoints: z.array(mainPointSchema),
-  conclusion: z.string().optional(),
+  conclusion: z.string(),
 });
 
 type SummaryResponse = z.infer<typeof summarySchema>;
