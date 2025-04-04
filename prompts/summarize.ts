@@ -12,8 +12,8 @@ Do not mark general opinions or vague claims as fact-based.
 Return your result in the following JSON structure:
 
 Summary = {
-  Introduction?: string,
-  MainPoints: Array<{
+  introduction?: string,
+  mainPoints: Array<{
     heading: string,
     subpoints: Array<{
       text: string,
@@ -21,7 +21,7 @@ Summary = {
       timestamp: string
     }>
   }>,
-  Conclusion?: string
+  conclusion?: string
 };
 
 Example Input:
@@ -32,7 +32,7 @@ Transcript:
 
 Example Output:
 {
-  "MainPoints": [
+  "mainPoints": [
     {
       "heading": "Clean Energy Policy Debate",
       "subpoints": [
