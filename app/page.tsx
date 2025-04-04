@@ -72,47 +72,38 @@ export default function Home() {
 
             <div className="p-4 bg-gray-50 rounded">
               <h3 className="text-lg font-medium mb-2">Introduction</h3>
-              <p className="mb-4">{summary.summary.introduction}</p>
+              <p className="mb-4">{summary.introduction}</p>
 
               <h3 className="text-lg font-medium mb-2">Claims</h3>
-              <ul className="list-decimal pl-6 space-y-4">
-                {summary.summary.claims.map((claim, index) => (
-                  <li key={index} className="space-y-2">
-                    <p>{claim.claim_text}</p>
-                    <ul className="list-disc pl-6">
-                      {claim.evidence.map((evidence, evidenceIndex) => (
-                        <li
-                          key={evidenceIndex}
-                          className="text-sm text-gray-600"
-                        >
-                          <span className="font-medium">{evidence.type}:</span>{" "}
-                          {evidence.source}
+              <div className="space-y-6">
+                {summary.mainPoints.map((mainPoint, index) => (
+                  <div key={index} className="mb-4">
+                    <h4 className="text-md font-semibold">
+                      {mainPoint.heading}
+                    </h4>
+                    <ul className="list-disc pl-6 space-y-2 mt-2">
+                      {mainPoint.subpoints.map((subpoint, subIndex) => (
+                        <li key={subIndex} className="space-y-1">
+                          <div className="flex items-start">
+                            <p>{subpoint.text}</p>
+                            <span className="text-xs text-gray-500 ml-2">
+                              {subpoint.timestamp}
+                            </span>
+                          </div>
+                          {subpoint.isFactBased && (
+                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                              Fact-based
+                            </span>
+                          )}
                         </li>
                       ))}
                     </ul>
-                  </li>
+                  </div>
                 ))}
-              </ul>
+              </div>
 
               <h3 className="text-lg font-medium mt-4 mb-2">Conclusion</h3>
-              <p>{summary.summary.conclusion}</p>
-            </div>
-
-            <div className="p-4 bg-gray-50 rounded">
-              <h3 className="text-lg font-medium mb-2">Knowledge Triples</h3>
-              <ul className="space-y-2">
-                {summary.triples.map((triple, index) => (
-                  <li key={index} className="text-sm">
-                    <span className="font-medium">{triple.subject}</span>{" "}
-                    <span className="text-gray-600">{triple.relation}</span>{" "}
-                    <span className="font-medium">{triple.object}</span>
-                    <span className="text-gray-500 text-xs ml-2">
-                      ({triple.evidence[0]?.type} - {triple.evidence[0]?.source}
-                      )
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              <p>{summary.conclusion}</p>
             </div>
           </div>
         )}

@@ -1,45 +1,46 @@
 import { z } from "zod";
 
-// Schema for evidence
-export const evidenceSchema = z.object({
-  source: z.string(),
-  type: z.enum(["primary", "secondary", "tertiary"]),
+// Schema for subpoint
+const subpointSchema = z.object({
+  text: z.string(),
+  isFactBased: z.boolean(),
+  timestamp: z.string(), // Format: "HH:MM:SS"
 });
-
-export type Evidence = z.infer<typeof evidenceSchema>;
 
 // Schema for claim
-export const claimSchema = z.object({
-  claim_text: z.string(),
-  evidence: z.array(evidenceSchema),
+const mainPointSchema = z.object({
+  heading: z.string(),
+  subpoints: z.array(subpointSchema),
 });
-
-export type Claim = z.infer<typeof claimSchema>;
 
 // Schema for summary
-export const summarySchema = z.object({
-  introduction: z.string(),
-  claims: z.array(claimSchema),
-  conclusion: z.string(),
+const summarySchema = z.object({
+  introduction: z.string().optional(),
+  mainPoints: z.array(mainPointSchema),
+  conclusion: z.string().optional(),
 });
 
-export type Summary = z.infer<typeof summarySchema>;
+type SummaryResponse = z.infer<typeof summarySchema>;
+
+// Schema for evidence
+const evidenceSchema = z.object({
+  source: z.string(),
+  type: z.enum(["primary", "secondary", "tertiary"]),
+  date: z.string(),
+});
 
 // Schema for knowledge triple
-export const tripleSchema = z.object({
+const tripleSchema = z.object({
   subject: z.string(),
   relation: z.string(),
   object: z.string(),
-  evidence_type: z.enum(["primary", "secondary", "tertiary"]),
-  source: z.string(),
+  evidence: z.array(evidenceSchema),
 });
 
-export type Triple = z.infer<typeof tripleSchema>;
-
 // Schema for the complete response
-export const responseSchema = z.object({
+const responseSchema = z.object({
   summary: summarySchema,
   triples: z.array(tripleSchema),
 });
 
-export type SummaryResponse = z.infer<typeof responseSchema>;
+export { summarySchema, type SummaryResponse };

@@ -34,8 +34,12 @@ function extractVideoId(url: string): string | null {
 export type TranscriptResponse = {
   success: boolean;
   data?: {
-    transcript: string;
     videoId: string;
+    transcript: Array<{
+      text: string;
+      offset: number;
+      duration: number;
+    }>;
   };
   error?: string;
 };
@@ -58,15 +62,12 @@ export async function getYoutubeTranscript(
 
     // Fetch transcript
     const transcript = await YoutubeTranscript.fetchTranscript(videoId);
-    const transcriptText = transcript
-      .map((item: { text: string }) => item.text)
-      .join(" ");
 
     return {
       success: true,
       data: {
-        transcript: transcriptText,
         videoId,
+        transcript,
       },
     };
   } catch (error) {

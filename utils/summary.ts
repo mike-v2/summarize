@@ -1,11 +1,20 @@
 import OpenAI from "openai";
 import { z } from "zod";
 import { SUMMARIZE_SYSTEM_PROMPT } from "@/prompts/summarize";
-import { responseSchema } from "@/schemas/summary";
-import type { SummaryResult } from "@/types/summary";
+import { SummaryResponse, summarySchema } from "@/schemas/summary";
+
+type SummaryResult = {
+  success: boolean;
+  data?: SummaryResponse;
+  error?: string;
+};
 
 export async function generateSummary(
-  transcript: string
+  transcript: Array<{
+    text: string;
+    offset: number;
+    duration: number;
+  }>
 ): Promise<SummaryResult> {
   try {
     if (!process.env.DEEPSEEK_API_KEY) {
@@ -17,9 +26,18 @@ export async function generateSummary(
       baseURL: "https://api.deepseek.com",
     });
 
+    // Format transcript with timestamps
+    const formattedTranscript = JSON.stringify({
+      segments: transcript.map((segment) => ({
+        text: segment.text,
+        timestamp: formatTimestamp(segment.offset / 1000), // Convert ms to seconds and format
+        duration: segment.duration / 1000, // Convert ms to seconds
+      })),
+    });
+
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       { role: "system", content: SUMMARIZE_SYSTEM_PROMPT },
-      { role: "user", content: transcript },
+      { role: "user", content: formattedTranscript },
     ];
 
     const response = await client.chat.completions.create({
@@ -36,7 +54,7 @@ export async function generateSummary(
     }
 
     const parsedContent = JSON.parse(content);
-    const validatedContent = responseSchema.parse(parsedContent);
+    const validatedContent = summarySchema.parse(parsedContent);
 
     return {
       success: true,
@@ -60,4 +78,17 @@ export async function generateSummary(
       error: "An unexpected error occurred",
     };
   }
+}
+
+// Helper function to format timestamp in HH:MM:SS format
+function formatTimestamp(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = Math.floor(seconds % 60);
+
+  return [
+    hours.toString().padStart(2, "0"),
+    minutes.toString().padStart(2, "0"),
+    secs.toString().padStart(2, "0"),
+  ].join(":");
 }

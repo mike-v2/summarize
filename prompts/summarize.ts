@@ -1,70 +1,57 @@
 export const SUMMARIZE_SYSTEM_PROMPT = `
-You will be provided with a transcript from a political or debate-oriented video. Your task is to:
+Summarize the provided transcript segments into a structured object with an optional introduction, multiple main points, and an optional conclusion.
 
-1. **Summarize the Transcript**:
-   - Write a concise **introduction** outlining the general context and main topics discussed.
-   - Clearly list **claims** made in the video, numbering each claim distinctly.
-   - For each claim, explicitly list any associated **evidence** presented, classifying it as:
-     - **Primary**: Direct sources, original data, or firsthand testimony.
-     - **Secondary**: Summaries, reports, expert analyses.
-     - **Tertiary**: Anecdotes, indirect references, or less reliable sources.
-   - Finish with a clear, summarizing **conclusion**.
+Each main point should include concise sub-points.
 
-2. **Extract Knowledge Triples**:
-   - Be precise and accurate. Do not infer beyond the information explicitly mentioned.
-   - Identify all claims and evidence statements, structuring each explicitly as a knowledge triple in the following JSON schema:
+Label each sub-point with a boolean flag "isFactBased", set to "true" only if the statement is:
+- Clear and Verifiable: A specific action or event that could be independently confirmed (e.g., “Senator X voted for Bill Y”).
+- Important or Impactful: A claim that meaningfully contributes to the discussion’s topic or outcome.
 
-~~~json
+Do not mark general opinions or vague claims as fact-based.
+
+Return your result in the following JSON structure:
+
+Summary = {
+  Introduction?: string,
+  MainPoints: Array<{
+    heading: string,
+    subpoints: Array<{
+      text: string,
+      isFactBased: boolean,
+      timestamp: string
+    }>
+  }>,
+  Conclusion?: string
+};
+
+Example Input:
+Transcript:
+- 00:01:15 — "Senator Williams voted against the Clean Energy Bill last Thursday."
+- 00:01:45 — "She has always been skeptical of big government."
+- 00:02:10 — "Her stance might influence some moderate voters."
+
+Example Output:
 {
-  "subject": "Subject Entity",
-  "relation": "Relation",
-  "object": "Object Entity",
-  "evidence_type": "primary | secondary | tertiary",
-  "source": "Evidence"
-}
-~~~
-
-**Example Output:**
-
-{
-  "summary": {
-    "introduction": "In this debate, the primary topic was climate change policy. Participants focused on renewable energy, economic impacts, and policy disagreements.",
-    "claims": [
-      {
-        "claim_text": "Senator Smith argued that the Clean Energy Act significantly reduced carbon emissions.",
-        "evidence": [
-          {
-            "source": "Official EPA report cited at 04:25",
-            "type": "primary",
-          }
-        ]
-      },
-      {
-        "claim_text": "Representative Jones claimed renewable energy subsidies negatively impact employment.",
-        "evidence": [
-          {
-            "source": "Bob Doe, Economics professor at NYU",
-            "type": "secondary",
-          }
-        ]
-      }
-    ],
-    "conclusion": "The discussion highlighted clear divisions regarding the environmental and economic implications of recent climate policies."
-  },
-  "triples": [
+  "MainPoints": [
     {
-      "subject": "Clean Energy Act",
-      "relation": "reduced",
-      "object": "carbon emissions",
-      "evidence_type": "primary",
-      "source": "Climate Debate 2024, 04:25"
-    },
-    {
-      "subject": "renewable energy subsidies",
-      "relation": "negatively impact",
-      "object": "employment",
-      "evidence_type": "secondary",
-      "source": "Climate Debate 2024, 12:17"
+      "heading": "Clean Energy Policy Debate",
+      "subpoints": [
+        {
+          "text": "Senator Williams voted against the Clean Energy Bill last Thursday.",
+          "isFactBased": true,
+          "timestamp": "00:01:15"
+        },
+        {
+          "text": "Senator Williams expressed skepticism about government expansion.",
+          "isFactBased": false,
+          "timestamp": "00:01:45"
+        },
+        {
+          "text": "Her position could affect moderate voters in the upcoming election.",
+          "isFactBased": false,
+          "timestamp": "00:02:10"
+        }
+      ]
     }
   ]
 }
