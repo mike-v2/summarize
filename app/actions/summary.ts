@@ -1,17 +1,19 @@
 "use server";
 
 import { generateSummary } from "@/utils/summary";
-import { getYoutubeTranscript } from "@/utils/youtube";
+import { getYoutubeTranscript, getVideoMetadata } from "@/utils/youtube";
 
 export async function generateVideoSummary(url: string) {
-  const transcriptResult = await getYoutubeTranscript(url);
+  const metadata = await getVideoMetadata(url);
 
-  if (!transcriptResult.success || !transcriptResult.data) {
+  const transcript = await getYoutubeTranscript(url);
+
+  if (!transcript.success || !transcript.data) {
     return {
       success: false,
-      error: transcriptResult.error || "Failed to fetch transcript",
+      error: transcript.error || "Failed to fetch transcript",
     };
   }
 
-  return generateSummary(transcriptResult.data.transcript);
+  return generateSummary(transcript.data.transcript);
 }
