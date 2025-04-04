@@ -30,8 +30,8 @@ export async function generateSummary(
     const formattedTranscript = JSON.stringify({
       segments: transcript.map((segment) => ({
         text: segment.text,
-        timestamp: formatTimestamp(segment.offset / 1000), // Convert ms to seconds and format
-        duration: segment.duration / 1000, // Convert ms to seconds
+        timestamp: formatTimestamp(segment.offset),
+        duration: segment.duration,
       })),
     });
 
@@ -53,6 +53,7 @@ export async function generateSummary(
       throw new Error("No content in response");
     }
 
+    console.log(content);
     const parsedContent = JSON.parse(content);
     const validatedContent = summarySchema.parse(parsedContent);
 
