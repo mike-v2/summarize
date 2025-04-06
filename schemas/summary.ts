@@ -13,6 +13,8 @@ const mainPointSchema = z.object({
   subpoints: z.array(subpointSchema),
 });
 
+type MainPoint = z.infer<typeof mainPointSchema>;
+
 // Schema for summary
 const summarySchema = z.object({
   introduction: z.string(),
@@ -37,10 +39,4 @@ const tripleSchema = z.object({
   evidence: z.array(evidenceSchema),
 });
 
-// Schema for the complete response
-const responseSchema = z.object({
-  summary: summarySchema,
-  triples: z.array(tripleSchema),
-});
-
-export { summarySchema, type SummaryResponse };
+export { summarySchema, type SummaryResponse, type MainPoint };
