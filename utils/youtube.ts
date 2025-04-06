@@ -106,15 +106,6 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
     const snippet = videoData.snippet;
     const contentDetails = videoData.contentDetails;
 
-    const logData = {
-      id: videoId,
-      title: snippet.title,
-      description: snippet.description,
-      publishedAt: snippet.publishedAt,
-      duration: contentDetails?.duration,
-    };
-    console.log("video metadata: ", logData);
-
     return {
       success: true,
       data: {

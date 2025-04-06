@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.8.0",
+    "date-fns": "^4.1.0",
     "mongodb": "^6.15.0",
+    "mongoose": "^8.13.2",
     "next": "15.2.3",
     "next-auth": "^4.24.11",
     "openai": "^4.89.0",

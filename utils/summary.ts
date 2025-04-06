@@ -53,7 +53,6 @@ export async function generateSummary(
       throw new Error("No content in response");
     }
 
-    console.log(content);
     const parsedContent = JSON.parse(content);
     const validatedContent = summarySchema.parse(parsedContent);
 
