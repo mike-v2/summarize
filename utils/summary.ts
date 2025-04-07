@@ -74,7 +74,7 @@ export async function llmExtractClaimsFromSummary(
   try {
     const parsedJson = JSON.parse(content as string);
     console.log("llm second pass response: ", parsedJson);
-    return parsedJson as FactBasedClaim[];
+    return parsedJson.claims as FactBasedClaim[];
   } catch (error) {
     console.error("Failed to parse LLM response as JSON:", error);
     throw new Error("Could not parse annotation response from LLM.");

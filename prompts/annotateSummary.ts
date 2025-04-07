@@ -9,21 +9,19 @@ You are given two inputs:
    - \`duration\`: Duration of the segment in seconds.
 2. A **summary** created from the transcript.
 
-Your task is to identify all **fact-based claims** from the provided summary. For each claim, produce a structured JSON object containing:
-
-- \`text\`: The claim clearly stated as a standalone, independently verifiable fact (e.g., “Employment increased by 3% after the tax reform bill was passed”).
-- \`timestamp\`: The earliest timestamp from the transcript where the claim first appears.
-- \`evidence\`: An array of evidence objects supporting the claim, formatted as follows:
-
-\`\`\`json
-"evidence": [
-\t{
-\t\t"type": "primary" | "secondary" | "tertiary",
-\t\t"source": "string",
-\t\t"description": "string",
-\t\t"timestamp": "HH:MM:SS"
-\t}
-]
+Your task is to identify all **fact-based claims** from the provided summary. For each claim, produce a structured JSON object:
+{
+  "text": "string",
+  "timestamp": "HH:MM:SS",
+  "evidence": [
+    {
+      "type": "primary" | "secondary" | "tertiary",
+      "source": "string",
+      "description": "string", 
+      "timestamp": "HH:MM:SS"
+    }
+  ]
+}
 \`\`\`
 
 **Evidence Types Explained:**
@@ -54,32 +52,34 @@ The debate mainly discussed economic issues. Employment increased by 3% after th
 ### Structured JSON Output:
 
 \`\`\`json
-[
-  {
-    "text": "Employment increased by 3% after the tax reform bill was passed.",
-    "timestamp": "00:03:45",
-    "evidence": [
-      {
-        "type": "primary",
-        "source": "Bureau of Labor Statistics",
-        "description": "A report from the Bureau of Labor Statistics confirms the 3% increase in employment.",
-        "timestamp": "00:04:10"
-      }
-    ]
-  },
-  {
-    "text": "The new housing policy created thousands of affordable homes.",
-    "timestamp": "00:05:22",
-    "evidence": [
-      {
-        "type": "secondary",
-        "source": "Senator Baker",
-        "description": "Senator Baker summarized the impact of the new housing policy, noting the creation of thousands of affordable homes.",
-        "timestamp": "00:05:22"
-      }
-    ]
-  }
-]
+{
+  "claims": [
+    {
+      "text": "employment increased by 3% following the tax reform.",
+      "timestamp": "00:03:45",
+      "evidence": [
+        {
+          "type": "primary",
+          "source": "Bureau of Labor Statistics",
+          "description": "Report confirms the 3% increase in employment.",
+          "timestamp": "00:04:10"
+        }
+      ]
+    },
+    {
+      "text": "the housing policy led to the creation of thousands of affordable homes.",
+      "timestamp": "00:05:22",
+      "evidence": [
+        {
+          "type": "secondary",
+          "source": "Speaker Testimony",
+          "description": "Speaker stated the new housing policy created thousands of affordable homes.",
+          "timestamp": "00:05:22"
+        }
+      ]
+    }
+  ]
+}
 \`\`\`
 `;
 
