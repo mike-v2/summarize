@@ -1,6 +1,7 @@
 import dbConnect from "@/lib/db/mongoose";
 import VideoSummaryModel from "@/models/VideoSummary";
 import { VideoSummary } from "@/types";
+import { FactBasedClaim } from "@/schemas/summary";
 
 type CreateVideoSummaryInput = Omit<
   VideoSummary,
@@ -14,6 +15,7 @@ export async function createVideoSummary(
 
   try {
     const newSummary = await VideoSummaryModel.create(data);
+
     console.log("Video summary created successfully");
     return newSummary;
   } catch (error: any) {
@@ -24,5 +26,30 @@ export async function createVideoSummary(
       throw new Error(`Validation Error: ${messages.join(", ")}`);
     }
     throw new Error("Failed to create video summary in database.");
+  }
+}
+
+export async function updateVideoSummary(
+  id: string,
+  claims: FactBasedClaim[]
+): Promise<VideoSummary> {
+  await dbConnect();
+
+  try {
+    const updatedSummary = await VideoSummaryModel.findByIdAndUpdate(
+      id,
+      { $set: { claims: claims } },
+      { new: true, runValidators: true }
+    );
+
+    console.log(`Video summary ${id} updated successfully`);
+    return updatedSummary;
+  } catch (error: any) {
+    console.error(`Error updating video summary ${id} in DB function:`, error);
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((el: any) => el.message);
+      throw new Error(`Validation Error during update: ${messages.join(", ")}`);
+    }
+    throw new Error(`Failed to update video summary ${id} in database.`);
   }
 }

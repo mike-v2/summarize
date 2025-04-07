@@ -1,15 +1,25 @@
 "use server";
 
 import { getServerSession } from "next-auth/next";
+import { z } from "zod";
+
 import { nextAuthOptions } from "@/config/nextAuthOptions";
-import { createVideoSummary } from "@/lib/db/videoSummaries";
-import { generateSummary } from "@/utils/summary";
+import {
+  createVideoSummary,
+  updateVideoSummary,
+} from "@/lib/db/videoSummaries";
+import {
+  llmExtractClaimsFromSummary,
+  llmGenerateSummary,
+} from "@/utils/summary";
 import { getYoutubeTranscript, getVideoMetadata } from "@/utils/youtube";
-import { SummaryResponse, summarySchema } from "@/schemas/summary";
+import { factBasedClaimSchema, type FactBasedClaim } from "@/schemas/summary";
+import { YoutubeTranscriptSegment } from "@/types";
+import { formatTranscriptTimestamps } from "@/utils/timestamp";
 
 type ActionResult = {
   success: boolean;
-  data?: SummaryResponse;
+  data?: string;
   error?: string;
 };
 
@@ -42,7 +52,11 @@ export async function generateVideoSummary(
     const metadata = metadataResult.data;
 
     // Handle transcript errors
-    if (!transcriptResult.success || !transcriptResult.data) {
+    if (
+      !transcriptResult.success ||
+      !transcriptResult.data?.transcript ||
+      !Array.isArray(transcriptResult.data.transcript)
+    ) {
       return {
         success: false,
         error: transcriptResult.error || "Failed to fetch transcript",
@@ -61,11 +75,16 @@ export async function generateVideoSummary(
       duration: String(metadata.duration),
     };
 
-    // Create a TransformStream to process the data before sending to client
-    const { readable, writable } = new TransformStream();
+    // Combine transcript
+    const combinedTranscript = transcriptData.transcript
+      .map((item) => item.text)
+      .join(" ");
 
     // Get the raw stream from the summary generator
-    const summaryStream = await generateSummary(transcriptData.transcript);
+    const summaryStream = await llmGenerateSummary(combinedTranscript);
+
+    // Create a TransformStream to process the data before sending to client
+    const { readable, writable } = new TransformStream();
 
     // Process the stream, save the result, and pass it through to the client
     (async () => {
@@ -80,40 +99,29 @@ export async function generateVideoSummary(
         while (true) {
           const { done, value } = await reader.read();
 
-          if (done) {
-            break;
-          }
+          if (done) break;
 
-          // Decode the chunk to add to our complete response
           const chunk = textDecoder.decode(value, { stream: true });
           completeResponse += chunk;
 
-          // Forward the chunk to the client
           await writer.write(value);
         }
 
-        // Process and save the complete response
         try {
-          const parsedSummary = JSON.parse(completeResponse);
-          const validatedSummary = summarySchema.parse(parsedSummary);
-
-          // Save the summary to the database asynchronously
-          // (don't await to avoid delaying stream completion)
+          // Save summary to DB
           const videoSummaryData = {
-            userId: summaryMetadata.userId,
-            videoId: summaryMetadata.videoId,
-            url: summaryMetadata.url,
-            title: summaryMetadata.title,
-            description: summaryMetadata.description,
-            publishedAt: summaryMetadata.publishedAt,
-            duration: summaryMetadata.duration,
-            summary: validatedSummary,
+            ...summaryMetadata,
+            rawSummary: completeResponse,
           };
-          console.log("saving videoSummaryData", videoSummaryData);
+          const savedSummary = await createVideoSummary(videoSummaryData);
 
-          createVideoSummary(videoSummaryData).catch((error) => {
-            console.error("Failed to save summary to database:", error);
-          });
+          const claims = await extractClaims(
+            savedSummary._id.toString(),
+            transcriptData.transcript,
+            completeResponse
+          );
+
+          updateVideoSummary(savedSummary._id.toString(), claims);
         } catch (parseError) {
           console.error("Error parsing summary:", parseError);
 
@@ -147,5 +155,35 @@ export async function generateVideoSummary(
       success: false,
       error: "An unexpected error occurred while processing the video.",
     };
+  }
+}
+
+async function extractClaims(
+  savedSummaryId: string,
+  transcript: YoutubeTranscriptSegment[],
+  rawSummary: string
+): Promise<FactBasedClaim[]> {
+  try {
+    const formattedTranscript = JSON.stringify(
+      formatTranscriptTimestamps(transcript)
+    );
+
+    const extractedClaims = await llmExtractClaimsFromSummary(
+      rawSummary,
+      formattedTranscript
+    );
+    const claimsSchema = z.array(factBasedClaimSchema);
+    const validatedClaims = claimsSchema.parse(extractedClaims);
+
+    return validatedClaims;
+  } catch (error) {
+    console.error(
+      `Error processing/updating claims for summary ${savedSummaryId}:`,
+      error
+    );
+    if (error instanceof z.ZodError) {
+      console.error("Validation Error during claim update:", error.errors);
+    }
+    return [];
   }
 }

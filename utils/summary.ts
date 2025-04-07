@@ -1,49 +1,27 @@
 import OpenAI from "openai";
-import { SUMMARIZE_SYSTEM_PROMPT } from "@/prompts/summarize";
-import { SummaryResponse } from "@/schemas/summary";
+import { SIMPLE_SUMMARIZE_SYSTEM_PROMPT } from "@/prompts/summarize";
+import {
+  createAnnotateSummaryPrompt,
+  ANNOTATE_SUMMARY_PROMPT,
+} from "@/prompts/annotateSummary";
+import { FactBasedClaim } from "@/schemas/summary";
 
-type SummaryResult = {
-  success: boolean;
-  data?: SummaryResponse;
-  error?: string;
-};
-
-export async function generateSummary(
-  transcript: Array<{
-    text: string;
-    offset: number;
-    duration: number;
-  }>
+export async function llmGenerateSummary(
+  text: string
 ): Promise<ReadableStream<Uint8Array>> {
-  if (!process.env.DEEPSEEK_API_KEY) {
-    throw new Error("DEEPSEEK_API_KEY is not set");
-  }
-
   const client = new OpenAI({
     apiKey: process.env.DEEPSEEK_API_KEY,
     baseURL: "https://api.deepseek.com",
   });
 
-  // Format transcript with timestamps
-  const formattedTranscript = JSON.stringify({
-    segments: transcript.map((segment) => ({
-      text: segment.text,
-      timestamp: formatTimestamp(segment.offset),
-      duration: segment.duration,
-    })),
-  });
-
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
-    { role: "system", content: SUMMARIZE_SYSTEM_PROMPT },
-    { role: "user", content: formattedTranscript },
+    { role: "system", content: SIMPLE_SUMMARIZE_SYSTEM_PROMPT },
+    { role: "user", content: text },
   ];
 
   const stream = await client.chat.completions.create({
     model: "deepseek-chat",
     messages,
-    response_format: {
-      type: "json_object",
-    },
     stream: true,
   });
 
@@ -60,14 +38,6 @@ export async function generateSummary(
           controller.enqueue(encoder.encode(content));
         }
 
-        // Validate the final JSON after stream completes
-        try {
-          JSON.parse(accumulatedContent);
-        } catch (e) {
-          console.error("Streamed response is not valid JSON", e);
-          controller.enqueue(encoder.encode(`\nERROR: Invalid JSON response`));
-        }
-
         controller.close();
       } catch (error) {
         console.error("Error in stream processing:", error);
@@ -77,15 +47,36 @@ export async function generateSummary(
   });
 }
 
-// Helper function to format timestamp in HH:MM:SS format
-function formatTimestamp(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const minutes = Math.floor((seconds % 3600) / 60);
-  const secs = Math.floor(seconds % 60);
+export async function llmExtractClaimsFromSummary(
+  transcript: string,
+  summary: string
+): Promise<FactBasedClaim[]> {
+  const client = new OpenAI({
+    apiKey: process.env.DEEPSEEK_API_KEY,
+    baseURL: "https://api.deepseek.com",
+  });
 
-  return [
-    hours.toString().padStart(2, "0"),
-    minutes.toString().padStart(2, "0"),
-    secs.toString().padStart(2, "0"),
-  ].join(":");
+  const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+    { role: "system", content: ANNOTATE_SUMMARY_PROMPT },
+    { role: "user", content: createAnnotateSummaryPrompt(transcript, summary) },
+  ];
+
+  const response = await client.chat.completions.create({
+    model: "deepseek-chat",
+    messages,
+    response_format: {
+      type: "json_object",
+    },
+  });
+
+  const content = response.choices[0].message.content;
+
+  try {
+    const parsedJson = JSON.parse(content as string);
+    console.log("llm second pass response: ", parsedJson);
+    return parsedJson as FactBasedClaim[];
+  } catch (error) {
+    console.error("Failed to parse LLM response as JSON:", error);
+    throw new Error("Could not parse annotation response from LLM.");
+  }
 }

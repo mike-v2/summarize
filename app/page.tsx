@@ -3,18 +3,111 @@
 import { useState, useRef, useEffect } from "react";
 import AuthStatus from "@/components/authStatus";
 import { generateVideoSummary } from "@/app/actions/summary";
-import { MainPoint, SummaryResponse } from "@/schemas/summary";
+import React from "react";
+
+// Helper function to parse only inline markdown (bold/italic)
+const parseInlineFormatting = (text: string): React.ReactNode[] => {
+  const nodes: React.ReactNode[] = [];
+  let remainingText = text;
+  let keyIndex = 0;
+  const regex = /(\*\*|\*)(.*?)\1/g;
+  let lastIndex = 0;
+  let match;
+
+  while ((match = regex.exec(remainingText)) !== null) {
+    const delimiter = match[1];
+    const content = match[2];
+    const startIndex = match.index;
+
+    if (startIndex > lastIndex) {
+      nodes.push(remainingText.substring(lastIndex, startIndex));
+    }
+
+    if (delimiter === "**") {
+      nodes.push(
+        <strong key={`md-inline-bold-${keyIndex++}`}>{content}</strong>
+      );
+    } else if (delimiter === "*") {
+      nodes.push(<em key={`md-inline-italic-${keyIndex++}`}>{content}</em>);
+    }
+
+    lastIndex = regex.lastIndex;
+  }
+
+  if (lastIndex < remainingText.length) {
+    nodes.push(remainingText.substring(lastIndex));
+  }
+
+  // If the input text resulted in no nodes (e.g., empty string), return empty array
+  // Let the caller handle empty lines / whitespace
+  if (nodes.length === 0 && text.trim() === "") {
+    return [];
+  }
+
+  return nodes;
+};
+
+// Main parser: handles block elements (headings) and calls inline parser
+const parseSimpleMarkdownToReact = (text: string): React.ReactNode[] => {
+  // Check for headings first
+  const headingMatch = text.match(/^(#+)\s+(.*)/);
+  if (headingMatch) {
+    const level = headingMatch[1].length;
+    const content = headingMatch[2];
+    const safeLevel = Math.max(1, Math.min(6, level));
+    const HeadingTag = `h${safeLevel}`;
+    // Parse the *content* of the heading for inline formatting
+    const headingContentNodes = parseInlineFormatting(content);
+    // Determine Tailwind classes based on heading level
+    let headingClasses = "";
+    switch (safeLevel) {
+      case 1:
+        headingClasses = "text-3xl font-bold mb-4 mt-6"; // Tailwind classes for H1
+        break;
+      case 2:
+        headingClasses = "text-2xl font-bold mb-3 mt-5"; // Tailwind classes for H2
+        break;
+      case 3:
+        headingClasses = "text-xl font-bold mb-2 mt-4"; // Tailwind classes for H3
+        break;
+      case 4:
+        headingClasses = "text-lg font-semibold mb-2 mt-3"; // Tailwind classes for H4
+        break;
+      case 5:
+        headingClasses = "text-base font-semibold mb-1 mt-2"; // Tailwind classes for H5
+        break;
+      case 6:
+      default:
+        headingClasses = "text-sm font-semibold mb-1 mt-1"; // Tailwind classes for H6
+        break;
+    }
+
+    // Create the heading element with potentially formatted children and Tailwind classes
+    return [
+      React.createElement(
+        HeadingTag,
+        { key: "md-heading", className: headingClasses },
+        ...headingContentNodes
+      ),
+    ];
+  }
+
+  // If not a heading, parse the whole line for inline formatting
+  const inlineNodes = parseInlineFormatting(text);
+
+  // Handle lines that are empty or only whitespace after parsing
+  if (inlineNodes.length === 0 && text.trim() === "") {
+    return [<React.Fragment key={`md-empty-line`}>&nbsp;</React.Fragment>];
+  }
+
+  return inlineNodes;
+};
 
 export default function Home() {
   const [url, setUrl] = useState("");
-  const [summary, setSummary] = useState<SummaryResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [streamingContent, setStreamingContent] = useState<SummaryResponse>({
-    introduction: "",
-    mainPoints: [],
-    conclusion: "",
-  });
+  const [rawSummaryText, setRawSummaryText] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
@@ -27,81 +120,11 @@ export default function Home() {
     };
   }, []);
 
-  // Try to progressively parse the JSON as it streams in
-  const tryParseStreamingJSON = (text: string) => {
-    try {
-      // Make a best effort to parse possibly incomplete JSON
-      // First, try to parse it normally
-      const parsedData = JSON.parse(text);
-      return parsedData;
-    } catch (e) {
-      // If normal parsing fails, try to extract what we can
-      try {
-        // Extract introduction if available
-        const introMatch = text.match(/"introduction"\s*:\s*"([^"]*)/);
-        const introduction = introMatch ? introMatch[1] : "";
-
-        // Extract conclusion if available
-        const conclusionMatch = text.match(/"conclusion"\s*:\s*"([^"]*)/);
-        const conclusion = conclusionMatch ? conclusionMatch[1] : "";
-
-        // Extract main points - this is a simplistic approach that may not work for all cases
-        const mainPoints: Array<MainPoint> = [];
-
-        // Try to extract headings
-        const headingMatches = text.matchAll(/"heading"\s*:\s*"([^"]*)"/g);
-        if (headingMatches) {
-          for (const match of headingMatches) {
-            if (match[1]) {
-              mainPoints.push({
-                heading: match[1],
-                subpoints: [],
-              });
-            }
-          }
-        }
-
-        // Try to extract subpoints (simplified approach)
-        const subpointMatches = text.matchAll(/"text"\s*:\s*"([^"]*)"/g);
-        if (subpointMatches && mainPoints.length > 0) {
-          let pointIndex = 0;
-          for (const match of subpointMatches) {
-            if (match[1]) {
-              // Distribute subpoints across main points - imperfect but better than nothing
-              const targetPoint = pointIndex % mainPoints.length;
-              // Provide default values for missing fields during streaming fallback
-              mainPoints[targetPoint].subpoints.push({
-                text: match[1],
-                isFactBased: false, // Default value
-                timestamp: "", // Default value
-              });
-              pointIndex++;
-            }
-          }
-        }
-
-        return {
-          introduction,
-          mainPoints,
-          conclusion,
-        };
-      } catch (parseError) {
-        // If all parsing fails, return the current state
-        return null;
-      }
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
-    setSummary(null);
-    setStreamingContent({
-      introduction: "",
-      mainPoints: [],
-      conclusion: "",
-    });
+    setRawSummaryText("");
     setIsStreaming(false);
 
     // Stop any existing stream
@@ -126,30 +149,12 @@ export default function Home() {
       abortControllerRef.current = new AbortController();
 
       try {
-        let accumulatedText = "";
-
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
           const text = decoder.decode(value, { stream: true });
-          accumulatedText += text;
-
-          // Try to progressively parse and display the JSON
-          const parsedContent = tryParseStreamingJSON(accumulatedText);
-          if (parsedContent) {
-            setStreamingContent(parsedContent);
-          }
-        }
-
-        // After streaming completes, try to parse the complete response
-        try {
-          const jsonData = JSON.parse(accumulatedText);
-          setSummary(jsonData);
-          // Summary is automatically saved by the server
-        } catch (err) {
-          setError("Failed to parse streamed response");
-          console.error("JSON parsing error:", err);
+          setRawSummaryText((prev) => prev + text);
         }
       } catch (streamError: any) {
         if (streamError.name !== "AbortError") {
@@ -165,47 +170,6 @@ export default function Home() {
       console.error(err);
       setLoading(false);
     }
-  };
-
-  // Render stream content in a structured way
-  const renderStreamingContent = () => {
-    return (
-      <div className="space-y-6 animate-pulse">
-        {streamingContent.introduction && (
-          <div>
-            <h3 className="text-lg font-medium mb-2">Introduction</h3>
-            <p className="mb-4">{streamingContent.introduction}</p>
-          </div>
-        )}
-
-        {streamingContent.mainPoints.length > 0 && (
-          <div>
-            <h3 className="text-lg font-medium mb-2">Main Points</h3>
-            <div className="space-y-6">
-              {streamingContent.mainPoints.map((point, index) => (
-                <div key={index} className="mb-4">
-                  <h4 className="text-md font-semibold">{point.heading}</h4>
-                  {point.subpoints.length > 0 && (
-                    <ul className="list-disc pl-6 space-y-2 mt-2">
-                      {point.subpoints.map((subpoint, subIndex) => (
-                        <li key={subIndex}>{subpoint.text}</li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {streamingContent.conclusion && (
-          <div>
-            <h3 className="text-lg font-medium mb-2">Conclusion</h3>
-            <p>{streamingContent.conclusion}</p>
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
@@ -242,55 +206,53 @@ export default function Home() {
           </div>
         )}
 
-        {isStreaming && (
+        {/* Display the streaming text directly, parsing simple markdown */}
+        {(loading || rawSummaryText) && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-4">
-              Live Summary (Building...)
+              {isStreaming ? "Generating Summary" : "Summary:"}
             </h2>
             <div className="p-4 bg-gray-50 rounded">
-              {renderStreamingContent()}
-            </div>
-          </div>
-        )}
+              {/* Split summary text into lines and parse each line */}
+              {rawSummaryText.split("\n").map((line, index) => {
+                const nodes = parseSimpleMarkdownToReact(line);
 
-        {summary && (
-          <div className="space-y-6">
-            <h2 className="text-2xl font-semibold">Summary:</h2>
+                // Check if the result is a heading tag
+                // It returns an array, so check the first element
+                const firstNode = nodes[0];
+                const isHeading =
+                  React.isValidElement(firstNode) &&
+                  typeof firstNode.type === "string" &&
+                  firstNode.type.startsWith("h");
 
-            <div className="p-4 bg-gray-50 rounded">
-              <h3 className="text-lg font-medium mb-2">Introduction</h3>
-              <p className="mb-4">{summary.introduction}</p>
-
-              <h3 className="text-lg font-medium mb-2">Claims</h3>
-              <div className="space-y-6">
-                {summary.mainPoints.map((mainPoint, index) => (
-                  <div key={index} className="mb-4">
-                    <h4 className="text-md font-semibold">
-                      {mainPoint.heading}
-                    </h4>
-                    <ul className="list-disc pl-6 space-y-2 mt-2">
-                      {mainPoint.subpoints.map((subpoint, subIndex) => (
-                        <li key={subIndex} className="space-y-1">
-                          <div className="flex items-start">
-                            <p>{subpoint.text}</p>
-                            <span className="text-xs text-gray-500 ml-2">
-                              {subpoint.timestamp}
-                            </span>
-                          </div>
-                          {subpoint.isFactBased && (
-                            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                              Fact-based
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-
-              <h3 className="text-lg font-medium mt-4 mb-2">Conclusion</h3>
-              <p>{summary.conclusion}</p>
+                if (isHeading) {
+                  // Render the heading directly, adding the map index as the key
+                  // Clone the element to add the key prop
+                  return React.cloneElement(firstNode as React.ReactElement, {
+                    key: index,
+                  });
+                } else if (line.trim() === "") {
+                  // Render an empty paragraph for lines that were just whitespace
+                  return (
+                    <p key={index} className="mb-2 min-h-[1em]">
+                      &nbsp;
+                    </p>
+                  );
+                } else if (nodes.length > 0 || line.trim() !== "") {
+                  // Render non-heading lines (text, strong, em) within a paragraph
+                  return (
+                    <p key={index} className="mb-2 min-h-[1em]">
+                      {nodes} {/* Render the array of nodes */}
+                    </p>
+                  );
+                }
+                // Return null if the line is effectively empty and not caught above
+                return null;
+              })}
+              {/* Show loading indicator if streaming and no text yet */}
+              {isStreaming && !rawSummaryText && (
+                <p className="animate-pulse">Loading...</p>
+              )}
             </div>
           </div>
         )}

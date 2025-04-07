@@ -1,14 +1,45 @@
-import { SummaryResponse } from "@/schemas/summary";
+import { FactBasedClaim } from "@/schemas/summary";
+
+export type VideoMetadata = {
+  id: string;
+  title: string;
+  description: string;
+  publishedAt: string;
+  duration?: string;
+};
+
+export type YoutubeTranscriptSegment = {
+  text: string;
+  offset: number;
+  duration: number;
+};
+
+export type TranscriptSegment = {
+  text: string;
+  timestamp: string;
+  duration: number;
+};
+
+export type TranscriptResponse = {
+  success: boolean;
+  data?: {
+    videoId: string;
+    transcript: TranscriptSegment[];
+  };
+  error?: string;
+};
 
 export type VideoSummary = {
+  _id: string;
   userId: string;
   videoId: string;
   url: string;
   title: string;
-  description?: string;
+  description: string;
   publishedAt: Date;
-  duration?: string;
-  summary: SummaryResponse;
+  duration: string;
+  rawSummary: string;
+  claims?: FactBasedClaim[];
   createdAt: Date;
   updatedAt: Date;
 };

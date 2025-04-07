@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { YoutubeTranscript } from "youtube-transcript";
+import { VideoMetadata, YoutubeTranscriptSegment } from "@/types";
 
 // Schema for YouTube URL validation
 const youtubeUrlSchema = z.string().refine((url) => {
@@ -31,28 +32,16 @@ function extractVideoId(url: string): string | null {
   }
 }
 
-export type TranscriptResponse = {
+type TranscriptResponse = {
   success: boolean;
   data?: {
     videoId: string;
-    transcript: Array<{
-      text: string;
-      offset: number;
-      duration: number;
-    }>;
+    transcript: YoutubeTranscriptSegment[];
   };
   error?: string;
 };
 
-export type VideoMetadata = {
-  id: string;
-  title: string;
-  description: string;
-  publishedAt: string;
-  duration?: string;
-};
-
-export type MetadataResponse = {
+type MetadataResponse = {
   success: boolean;
   data?: VideoMetadata;
   error?: string;
