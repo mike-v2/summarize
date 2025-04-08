@@ -6,6 +6,7 @@ import AuthStatus from "@/components/authStatus";
 import { generateVideoSummary } from "@/app/actions/summary";
 import { parseSimpleMarkdownToReact } from "@/utils/markdownParser";
 import { useSummaryPolling } from "@/hooks/useSummaryPolling";
+import { VideoMetadata } from "@/types";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -13,6 +14,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [rawSummaryText, setRawSummaryText] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
+  const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const [startPolling, setStartPolling] = useState(false);
@@ -50,15 +52,19 @@ export default function Home() {
     try {
       const result = await generateVideoSummary(url);
 
-      if (!(result instanceof ReadableStream)) {
+      if (!result.success || !(result.stream instanceof ReadableStream)) {
         setError(result.error || "Failed to initialize streaming");
         setLoading(false);
         return;
       }
 
+      if (result.metadata) {
+        setMetadata(result.metadata);
+      }
+
       setIsStreaming(true);
       setLoading(false);
-      const reader = result.getReader();
+      const reader = result.stream.getReader();
       const decoder = new TextDecoder();
 
       try {
@@ -135,9 +141,7 @@ export default function Home() {
 
         {(loading || rawSummaryText) && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {isStreaming ? "Generating Summary" : "Summary:"}
-            </h2>
+            <h2 className="text-xl font-semibold mb-4">{metadata?.title}</h2>
             <div className="p-4 bg-gray-50 rounded">
               {rawSummaryText.split("\n").map((line, index) => {
                 const nodes = parseSimpleMarkdownToReact(line);

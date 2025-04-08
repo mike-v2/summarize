@@ -13,19 +13,19 @@ import {
   llmGenerateSummary,
 } from "@/utils/summary";
 import { getYoutubeTranscript, getVideoMetadata } from "@/utils/youtube";
-import { factBasedClaimSchema, type FactBasedClaim } from "@/schemas/summary";
-import { YoutubeTranscriptSegment } from "@/types";
 import { formatTranscriptTimestamps } from "@/utils/timestamp";
+import { factBasedClaimSchema, type FactBasedClaim } from "@/schemas/summary";
+import { VideoMetadata, YoutubeTranscriptSegment } from "@/types";
 
 type ActionResult = {
   success: boolean;
-  data?: string;
+  stream?: ReadableStream<Uint8Array>;
+  metadata?: VideoMetadata;
+  summaryId?: string;
   error?: string;
 };
 
-export async function generateVideoSummary(
-  url: string
-): Promise<ReadableStream<Uint8Array> | ActionResult> {
+export async function generateVideoSummary(url: string): Promise<ActionResult> {
   const session = await getServerSession(nextAuthOptions);
   const userId = session?.user?.id;
 
@@ -78,15 +78,10 @@ export async function generateVideoSummary(
     // Though db entry should be set by the time llm response is finished
     const savedSummaryPromise = createVideoSummary(summaryMetadata);
 
-    // Combine transcript
     const combinedTranscript = transcriptData.transcript
       .map((item) => item.text)
       .join(" ");
-
-    // Get the raw stream from the summary generator
     const summaryStream = await llmGenerateSummary(combinedTranscript);
-
-    // Create a TransformStream to process the data before sending to client
     const { readable, writable } = new TransformStream();
 
     // Process the stream, save the result, and pass it through to the client
@@ -136,7 +131,13 @@ export async function generateVideoSummary(
       }
     })();
 
-    return readable;
+    const savedSummary = await savedSummaryPromise;
+    return {
+      success: true,
+      stream: readable,
+      metadata: metadata,
+      summaryId: savedSummary._id.toString(),
+    };
   } catch (error: any) {
     console.error("Error in generateVideoSummary action:", error);
 
