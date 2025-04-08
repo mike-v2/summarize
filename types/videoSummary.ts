@@ -38,7 +38,7 @@ export type VideoSummary = {
   description: string;
   publishedAt: Date;
   duration: string;
-  rawSummary: string;
+  rawSummary?: string;
   claims?: FactBasedClaim[];
   createdAt: Date;
   updatedAt: Date;

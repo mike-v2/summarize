@@ -5,6 +5,7 @@ import React, { useState, useRef, useEffect } from "react";
 import AuthStatus from "@/components/authStatus";
 import { generateVideoSummary } from "@/app/actions/summary";
 import { parseSimpleMarkdownToReact } from "@/utils/markdownParser";
+import { useSummaryPolling } from "@/hooks/useSummaryPolling";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -13,6 +14,17 @@ export default function Home() {
   const [rawSummaryText, setRawSummaryText] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  const [startPolling, setStartPolling] = useState(false);
+
+  const {
+    pollingStatus,
+    videoData: claimsData,
+    pollingError,
+  } = useSummaryPolling({
+    url: url,
+    shouldPoll: startPolling,
+  });
 
   useEffect(() => {
     return () => {
@@ -28,33 +40,36 @@ export default function Home() {
     setError("");
     setRawSummaryText("");
     setIsStreaming(false);
+    setStartPolling(false);
 
-    // Stop any existing stream
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
+    abortControllerRef.current = new AbortController();
 
     try {
       const result = await generateVideoSummary(url);
 
       if (!(result instanceof ReadableStream)) {
-        // Handle error if we didn't get a stream
         setError(result.error || "Failed to initialize streaming");
         setLoading(false);
         return;
       }
 
-      // Process the streaming response
       setIsStreaming(true);
+      setLoading(false);
       const reader = result.getReader();
       const decoder = new TextDecoder();
-      abortControllerRef.current = new AbortController();
 
       try {
         while (true) {
+          if (abortControllerRef.current?.signal.aborted) {
+            console.log("Stream reading aborted.");
+            reader.cancel("Aborted by user");
+            break;
+          }
           const { done, value } = await reader.read();
           if (done) break;
-
           const text = decoder.decode(value, { stream: true });
           setRawSummaryText((prev) => prev + text);
         }
@@ -65,12 +80,22 @@ export default function Home() {
         }
       } finally {
         setIsStreaming(false);
-        setLoading(false);
+        console.log("Stream finished.");
+        if (!abortControllerRef.current?.signal.aborted) {
+          console.log("Setting startPolling to true...");
+          setStartPolling(true);
+        } else {
+          console.log("Polling skipped due to abortion.");
+        }
+        abortControllerRef.current = null;
       }
-    } catch (err) {
-      setError("An unexpected error occurred");
+    } catch (err: any) {
+      setError(err.message || "An unexpected error occurred");
       console.error(err);
       setLoading(false);
+      setIsStreaming(false);
+      setStartPolling(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -108,19 +133,14 @@ export default function Home() {
           </div>
         )}
 
-        {/* Display the streaming text directly, parsing simple markdown */}
         {(loading || rawSummaryText) && (
           <div className="mb-6">
             <h2 className="text-xl font-semibold mb-4">
               {isStreaming ? "Generating Summary" : "Summary:"}
             </h2>
             <div className="p-4 bg-gray-50 rounded">
-              {/* Split summary text into lines and parse each line */}
               {rawSummaryText.split("\n").map((line, index) => {
                 const nodes = parseSimpleMarkdownToReact(line);
-
-                // Check if the result is a heading tag
-                // It returns an array, so check the first element
                 const firstNode = nodes[0];
                 const isHeading =
                   React.isValidElement(firstNode) &&
@@ -128,37 +148,52 @@ export default function Home() {
                   firstNode.type.startsWith("h");
 
                 if (isHeading) {
-                  // Render the heading directly, adding the map index as the key
-                  // Clone the element to add the key prop
                   return React.cloneElement(firstNode as React.ReactElement, {
                     key: index,
                   });
                 } else if (line.trim() === "") {
-                  // Render an empty paragraph for lines that were just whitespace
                   return (
                     <p key={index} className="mb-2 min-h-[1em]">
                       &nbsp;
                     </p>
                   );
                 } else if (nodes.length > 0 || line.trim() !== "") {
-                  // Render non-heading lines (text, strong, em) within a paragraph
                   return (
                     <p key={index} className="mb-2 min-h-[1em]">
-                      {nodes} {/* Render the array of nodes */}
+                      {nodes}
                     </p>
                   );
                 }
-                // Return null if the line is effectively empty and not caught above
                 return null;
               })}
-              {/* Show loading indicator if streaming and no text yet */}
               {isStreaming && !rawSummaryText && (
-                <p className="animate-pulse">Loading...</p>
+                <p className="animate-pulse">Loading initial stream...</p>
               )}
             </div>
+
+            {pollingStatus !== "idle" && pollingStatus !== "complete" && (
+              <div className="mt-4 p-2 text-sm text-gray-600 bg-gray-100 rounded">
+                {pollingStatus === "processing" &&
+                  "⚙️ Analyzing summary for claims..."}
+                {pollingStatus === "not_found" &&
+                  "⏳ Locating summary entry..."}
+                {pollingError && `⚠️ Error: ${pollingError}`}
+              </div>
+            )}
+            {pollingStatus === "complete" && claimsData && (
+              <div className="mt-4 p-2 text-sm text-green-700 bg-green-100 rounded">
+                ✅ Claim analysis complete.
+              </div>
+            )}
+            {pollingStatus === "error" && pollingError && (
+              <div className="mt-4 p-2 text-sm text-red-700 bg-red-100 rounded">
+                ❌ Error during claim analysis: {pollingError}
+              </div>
+            )}
           </div>
         )}
       </div>
     </main>
   );
 }
+

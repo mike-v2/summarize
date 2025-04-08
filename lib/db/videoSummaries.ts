@@ -5,7 +5,7 @@ import { FactBasedClaim } from "@/schemas/summary";
 
 type CreateVideoSummaryInput = Omit<
   VideoSummary,
-  "_id" | "createdAt" | "updatedAt"
+  "_id" | "rawSummary" | "createdAt" | "updatedAt"
 >;
 
 export async function createVideoSummary(
@@ -31,18 +31,17 @@ export async function createVideoSummary(
 
 export async function updateVideoSummary(
   id: string,
+  rawSummary: string,
   claims: FactBasedClaim[]
 ): Promise<VideoSummary> {
   await dbConnect();
 
   try {
-    const updatedSummary = await VideoSummaryModel.findByIdAndUpdate(
-      id,
-      { $set: { claims: claims } },
-      { new: true, runValidators: true }
-    );
+    const updatedSummary = await VideoSummaryModel.findByIdAndUpdate(id, {
+      $set: { claims: claims, rawSummary: rawSummary },
+    });
 
-    console.log(`Video summary ${id} updated successfully`);
+    console.log("Video summary updated successfully");
     return updatedSummary;
   } catch (error: any) {
     console.error(`Error updating video summary ${id} in DB function:`, error);
@@ -51,5 +50,30 @@ export async function updateVideoSummary(
       throw new Error(`Validation Error during update: ${messages.join(", ")}`);
     }
     throw new Error(`Failed to update video summary ${id} in database.`);
+  }
+}
+
+export async function findLatestVideoSummaryByUrl(
+  userId: string,
+  url: string
+): Promise<VideoSummary | null> {
+  await dbConnect();
+  try {
+    const latestSummary = await VideoSummaryModel.findOne({
+      userId: userId,
+      url: url,
+    })
+      .sort({ createdAt: -1 }) // Get the most recent one
+      .lean() // Use .lean() for faster, plain JS object results if we don't need Mongoose documents
+      .exec();
+
+    return latestSummary as VideoSummary | null; // Cast might be needed depending on lean() usage
+  } catch (error: any) {
+    console.error(
+      `Database error finding latest summary for user ${userId} and url ${url}:`,
+      error
+    );
+    // Re-throw or handle as appropriate for your error strategy
+    throw new Error("Failed to query database for latest summary.");
   }
 }

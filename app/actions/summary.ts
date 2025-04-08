@@ -64,7 +64,7 @@ export async function generateVideoSummary(
     }
     const transcriptData = transcriptResult.data;
 
-    // Create metadata object for saving later
+    // Save summary to DB
     const summaryMetadata = {
       userId,
       videoId: transcriptData.videoId,
@@ -74,6 +74,9 @@ export async function generateVideoSummary(
       publishedAt: new Date(metadata.publishedAt),
       duration: String(metadata.duration),
     };
+    // Use await to avoid race condition
+    // Though db entry should be set by the time llm response is finished
+    const savedSummaryPromise = createVideoSummary(summaryMetadata);
 
     // Combine transcript
     const combinedTranscript = transcriptData.transcript
@@ -108,20 +111,16 @@ export async function generateVideoSummary(
         }
 
         try {
-          // Save summary to DB
-          const videoSummaryData = {
-            ...summaryMetadata,
-            rawSummary: completeResponse,
-          };
-          const savedSummary = await createVideoSummary(videoSummaryData);
-
           const claims = await extractClaims(
-            savedSummary._id.toString(),
             transcriptData.transcript,
             completeResponse
           );
-
-          updateVideoSummary(savedSummary._id.toString(), claims);
+          const savedSummary = await savedSummaryPromise;
+          updateVideoSummary(
+            savedSummary._id.toString(),
+            completeResponse,
+            claims
+          );
         } catch (parseError) {
           console.error("Error parsing summary:", parseError);
 
@@ -159,7 +158,6 @@ export async function generateVideoSummary(
 }
 
 async function extractClaims(
-  savedSummaryId: string,
   transcript: YoutubeTranscriptSegment[],
   rawSummary: string
 ): Promise<FactBasedClaim[]> {
@@ -177,10 +175,7 @@ async function extractClaims(
 
     return validatedClaims;
   } catch (error) {
-    console.error(
-      `Error processing/updating claims for summary ${savedSummaryId}:`,
-      error
-    );
+    console.error(`Error processing/updating claims:`, error);
     if (error instanceof z.ZodError) {
       console.error("Validation Error during claim update:", error.errors);
     }

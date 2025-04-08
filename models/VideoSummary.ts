@@ -32,7 +32,6 @@ const VideoSummarySchema: Schema<VideoSummary> = new Schema(
     duration: { type: String, required: true },
     rawSummary: {
       type: String,
-      required: true,
     },
     claims: {
       type: [claimSchema],
