@@ -73,7 +73,6 @@ export async function llmExtractClaimsFromSummary(
 
   try {
     const parsedJson = JSON.parse(content as string);
-    console.log("llm second pass response: ", parsedJson);
     return parsedJson.claims as FactBasedClaimData[];
   } catch (error) {
     console.error("Failed to parse LLM response as JSON:", error);

@@ -3,8 +3,8 @@
 import React, { useState, useRef, useEffect } from "react";
 
 import AuthStatus from "@/components/authStatus";
+import HighlightedSummary from "@/components/highlightedSummary";
 import { generateVideoSummary } from "@/app/actions/summary";
-import { parseSimpleMarkdownToReact } from "@/utils/markdownParser";
 import { useSummaryPolling } from "@/hooks/useSummaryPolling";
 import { VideoMetadata } from "@/types";
 
@@ -15,14 +15,20 @@ export default function Home() {
   const [rawSummaryText, setRawSummaryText] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
-  const [summaryId, setSummaryId] = useState<string>("");
+  const [summaryId, setSummaryId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [startPolling, setStartPolling] = useState(false);
 
-  const { pollingStatus, claims, pollingError } = useSummaryPolling({
-    url: url,
-    shouldPoll: startPolling,
-    summaryId: summaryId,
+  // Determine if polling should be active
+  const shouldPoll = startPolling && summaryId !== null;
+
+  const {
+    pollingStatus,
+    claims: claimsData,
+    pollingError,
+  } = useSummaryPolling({
+    summaryId: summaryId ?? "",
+    shouldPoll: shouldPoll, // Use the combined condition
   });
 
   useEffect(() => {
@@ -40,6 +46,8 @@ export default function Home() {
     setRawSummaryText("");
     setIsStreaming(false);
     setStartPolling(false);
+    setMetadata(null);
+    setSummaryId(null);
 
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
@@ -47,25 +55,30 @@ export default function Home() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const result = await generateVideoSummary(url);
+      const {
+        success,
+        stream,
+        metadata: newMetadata,
+        summaryId: newSummaryId,
+        error: actionError,
+      } = await generateVideoSummary(url);
 
-      if (!result.success || !(result.stream instanceof ReadableStream)) {
-        setError(result.error || "Failed to initialize streaming");
+      if (!success || !(stream instanceof ReadableStream)) {
+        setError(actionError || "Failed to initialize streaming");
         setLoading(false);
         return;
       }
 
-      if (result.metadata) {
-        setMetadata(result.metadata);
+      if (newMetadata) {
+        setMetadata(newMetadata);
       }
-
-      if (result.summaryId) {
-        setSummaryId(result.summaryId);
+      if (newSummaryId) {
+        setSummaryId(newSummaryId);
       }
 
       setIsStreaming(true);
       setLoading(false);
-      const reader = result.stream.getReader();
+      const reader = stream.getReader();
       const decoder = new TextDecoder();
 
       try {
@@ -88,11 +101,14 @@ export default function Home() {
       } finally {
         setIsStreaming(false);
         console.log("Stream finished.");
-        if (!abortControllerRef.current?.signal.aborted) {
-          console.log("Setting startPolling to true...");
+        if (newSummaryId && !abortControllerRef.current?.signal.aborted) {
+          console.log(
+            "Setting startPolling to true with summaryId:",
+            newSummaryId
+          );
           setStartPolling(true);
         } else {
-          console.log("Polling skipped due to abortion.");
+          console.log("Polling skipped (no summaryId or aborted).");
         }
         abortControllerRef.current = null;
       }
@@ -107,85 +123,66 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-3xl font-bold">YouTube Video Summarizer</h1>
+    <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-gray-100">
+      <div className="z-10 max-w-4xl w-full items-center justify-between font-mono text-sm lg:flex mb-8">
+        <h1 className="text-2xl font-bold mb-4 lg:mb-0 text-center lg:text-left w-full">
+          Video Summarizer
+        </h1>
+        <div className="text-right">
           <AuthStatus />
         </div>
+      </div>
 
-        <form onSubmit={handleSubmit} className="mb-8">
-          <div className="flex gap-4 mb-2">
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter YouTube URL"
-              className="flex-1 p-2 border rounded"
-              disabled={loading}
-            />
-          </div>
+      <div className="w-full max-w-4xl bg-white p-6 rounded-lg shadow-md">
+        <form onSubmit={handleSubmit} className="mb-6">
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="Enter YouTube URL"
+            className="w-full p-2 border rounded mb-2"
+            required
+          />
           <button
             type="submit"
-            disabled={loading}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-blue-300"
+            disabled={loading || isStreaming}
+            className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
           >
-            {isStreaming ? "Generating Summary..." : "Generate Summary"}
+            {loading
+              ? "Loading..."
+              : isStreaming
+              ? "Streaming..."
+              : "Generate Summary"}
           </button>
+          {error && <p className="text-red-500 mt-2 text-sm">Error: {error}</p>}
         </form>
 
-        {error && (
-          <div className="p-4 bg-red-100 text-red-700 rounded mb-4">
-            {error}
-          </div>
-        )}
-
-        {(loading || rawSummaryText) && (
+        {(loading || rawSummaryText || metadata) && (
           <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-4">{metadata?.title}</h2>
-            <div className="p-4 bg-gray-50 rounded">
-              {rawSummaryText.split("\n").map((line, index) => {
-                const nodes = parseSimpleMarkdownToReact(line);
-                const firstNode = nodes[0];
-                const isHeading =
-                  React.isValidElement(firstNode) &&
-                  typeof firstNode.type === "string" &&
-                  firstNode.type.startsWith("h");
+            <h2 className="text-xl font-semibold mb-4">
+              {metadata?.title || "Summary"}
+            </h2>
+            <div className="p-4 bg-gray-50 rounded text-gray-800 leading-relaxed">
+              <HighlightedSummary
+                summaryText={rawSummaryText}
+                claims={claimsData}
+              />
 
-                if (isHeading) {
-                  return React.cloneElement(firstNode as React.ReactElement, {
-                    key: index,
-                  });
-                } else if (line.trim() === "") {
-                  return (
-                    <p key={index} className="mb-2 min-h-[1em]">
-                      &nbsp;
-                    </p>
-                  );
-                } else if (nodes.length > 0 || line.trim() !== "") {
-                  return (
-                    <p key={index} className="mb-2 min-h-[1em]">
-                      {nodes}
-                    </p>
-                  );
-                }
-                return null;
-              })}
               {isStreaming && !rawSummaryText && (
                 <p className="animate-pulse">Loading initial stream...</p>
               )}
             </div>
 
-            {pollingStatus !== "idle" && pollingStatus !== "complete" && (
+            {/* Polling Status Display */}
+            {/* Conditionally render based on shouldPoll or summaryId existing */}
+            {shouldPoll && pollingStatus !== "complete" && (
               <div className="mt-4 p-2 text-sm text-gray-600 bg-gray-100 rounded">
                 {pollingStatus === "processing" &&
                   "⚙️ Analyzing summary for claims..."}
-                {pollingStatus === "not_found" &&
-                  "⏳ Locating summary entry..."}
-                {pollingError && `⚠️ Error: ${pollingError}`}
+                {pollingError && `⚠️ Polling Error: ${pollingError}`}
               </div>
             )}
-            {pollingStatus === "complete" && claims && (
+            {pollingStatus === "complete" && claimsData && (
               <div className="mt-4 p-2 text-sm text-green-700 bg-green-100 rounded">
                 ✅ Claim analysis complete.
               </div>

@@ -2,12 +2,15 @@ import mongoose, { Schema } from "mongoose";
 import { Evidence } from "@/types";
 import { FactBasedClaim, VideoSummary } from "@/types";
 
-const evidenceSchema = new Schema<Evidence>({
-  timestamp: { type: String, required: true },
-  type: { type: String, required: true },
-  source: { type: String, required: true },
-  description: { type: String, required: true },
-});
+const evidenceSchema = new Schema<Evidence>(
+  {
+    timestamp: { type: String, required: true },
+    type: { type: String, required: true },
+    source: { type: String, required: true },
+    description: { type: String, required: true },
+  },
+  { _id: false }
+);
 
 const factBasedClaimSchema = new Schema<FactBasedClaim>(
   {

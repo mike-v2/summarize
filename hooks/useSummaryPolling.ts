@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 import { checkClaimStatus } from "@/app/actions/polling";
-import { VideoData, FactBasedClaim } from "@/types";
+import { FactBasedClaim } from "@/types";
 
 type ClientPollStatus =
   | "idle"
@@ -11,7 +11,6 @@ type ClientPollStatus =
   | "error";
 
 type UseSummaryPollingProps = {
-  url: string;
   shouldPoll: boolean;
   summaryId: string;
   pollingIntervalMs?: number;
@@ -28,7 +27,6 @@ const DEFAULT_POLLING_INTERVAL_MS = 5000;
 const DEFAULT_MAX_POLL_ATTEMPTS = 30;
 
 export function useSummaryPolling({
-  url,
   shouldPoll,
   summaryId,
   pollingIntervalMs = DEFAULT_POLLING_INTERVAL_MS,
@@ -41,8 +39,7 @@ export function useSummaryPolling({
   const pollAttempts = useRef(0);
 
   useEffect(() => {
-    // Stop polling if the signal is false or url is missing
-    if (!shouldPoll || !url) {
+    if (!shouldPoll || !summaryId) {
       if (pollingIntervalId.current) {
         clearInterval(pollingIntervalId.current);
         pollingIntervalId.current = null;
@@ -56,7 +53,7 @@ export function useSummaryPolling({
     }
 
     // Start polling
-    console.log(`Polling Hook: Activated for url: ${url}`);
+    console.log(`Polling Hook: Activated for summaryId: ${summaryId}`);
     setPollingError(null); // Clear previous errors
     setClaims(null); // Clear previous data
     pollAttempts.current = 0; // Reset attempts
@@ -74,7 +71,7 @@ export function useSummaryPolling({
 
       pollAttempts.current++;
       console.log(
-        `Polling Hook: Attempt ${pollAttempts.current} for url: ${url}`
+        `Polling Hook: Attempt ${pollAttempts.current} for summaryId: ${summaryId}`
       );
 
       try {
@@ -135,7 +132,7 @@ export function useSummaryPolling({
         pollingIntervalId.current = null;
       }
     };
-  }, [shouldPoll, url, pollingIntervalMs, maxPollAttempts]); // Dependencies for the effect
+  }, [summaryId, shouldPoll, pollingIntervalMs, maxPollAttempts]);
 
   return { pollingStatus, claims, pollingError };
 }
