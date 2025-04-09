@@ -1,11 +1,11 @@
 "use server";
 
 import { getServerSession } from "next-auth/next";
-import { z } from "zod";
 
 import { nextAuthOptions } from "@/config/nextAuthOptions";
 import {
-  createVideoSummary,
+  saveVideoMetadata,
+  saveClaims,
   updateVideoSummary,
 } from "@/lib/db/videoSummaries";
 import {
@@ -14,7 +14,7 @@ import {
 } from "@/utils/summary";
 import { getYoutubeTranscript, getVideoMetadata } from "@/utils/youtube";
 import { formatTranscriptTimestamps } from "@/utils/timestamp";
-import { factBasedClaimSchema, type FactBasedClaim } from "@/schemas/summary";
+import { type FactBasedClaimData } from "@/types";
 import { VideoMetadata, YoutubeTranscriptSegment } from "@/types";
 
 type ActionResult = {
@@ -76,7 +76,7 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
     };
     // Use await to avoid race condition
     // Though db entry should be set by the time llm response is finished
-    const savedSummaryPromise = createVideoSummary(summaryMetadata);
+    const savedSummaryPromise = saveVideoMetadata(summaryMetadata);
 
     const combinedTranscript = transcriptData.transcript
       .map((item) => item.text)
@@ -106,16 +106,15 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
         }
 
         try {
+          const savedSummary = await savedSummaryPromise;
+          updateVideoSummary(savedSummary._id.toString(), completeResponse);
+
           const claims = await extractClaims(
             transcriptData.transcript,
             completeResponse
           );
-          const savedSummary = await savedSummaryPromise;
-          updateVideoSummary(
-            savedSummary._id.toString(),
-            completeResponse,
-            claims
-          );
+
+          saveClaims(savedSummary._id.toString(), claims);
         } catch (parseError) {
           console.error("Error parsing summary:", parseError);
 
@@ -161,25 +160,15 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
 async function extractClaims(
   transcript: YoutubeTranscriptSegment[],
   rawSummary: string
-): Promise<FactBasedClaim[]> {
+): Promise<FactBasedClaimData[]> {
   try {
     const formattedTranscript = JSON.stringify(
       formatTranscriptTimestamps(transcript)
     );
 
-    const extractedClaims = await llmExtractClaimsFromSummary(
-      rawSummary,
-      formattedTranscript
-    );
-    const claimsSchema = z.array(factBasedClaimSchema);
-    const validatedClaims = claimsSchema.parse(extractedClaims);
-
-    return validatedClaims;
+    return await llmExtractClaimsFromSummary(rawSummary, formattedTranscript);
   } catch (error) {
     console.error(`Error processing/updating claims:`, error);
-    if (error instanceof z.ZodError) {
-      console.error("Validation Error during claim update:", error.errors);
-    }
     return [];
   }
 }

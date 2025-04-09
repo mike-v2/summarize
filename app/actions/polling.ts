@@ -2,18 +2,18 @@
 
 import { getServerSession } from "next-auth/next";
 import { nextAuthOptions } from "@/config/nextAuthOptions";
-import { findLatestVideoSummaryByUrl } from "@/lib/db/videoSummaries";
-import { VideoData } from "@/types";
+import { findClaimsBySummaryId } from "@/lib/db/claims";
+import { FactBasedClaim } from "@/types";
 
-type PollStatus = "processing" | "complete" | "error" | "not_found";
+type PollStatus = "processing" | "complete" | "error";
 
 type PollResult = {
   status: PollStatus;
-  videoData?: VideoData;
+  claims?: FactBasedClaim[];
   error?: string;
 };
 
-export async function checkClaimStatus(url: string): Promise<PollResult> {
+export async function checkClaimStatus(summaryId: string): Promise<PollResult> {
   const session = await getServerSession(nextAuthOptions);
   const userId = session?.user?.id;
 
@@ -26,28 +26,29 @@ export async function checkClaimStatus(url: string): Promise<PollResult> {
   }
 
   try {
-    const latestSummary = await findLatestVideoSummaryByUrl(userId, url);
+    const claims = await findClaimsBySummaryId(summaryId);
 
-    if (!latestSummary) {
-      console.log(`Polling: Summary for URL ${url} not found yet.`);
-      // It might not have been created yet by the main action
-      return { status: "not_found" };
-    }
-
-    // Check if claims exist and are non-empty
-    if (latestSummary.claims && latestSummary.claims.length > 0) {
-      console.log(`Polling: Claims found for URL ${url}.`);
+    if (claims.length > 0) {
+      console.log(
+        `Polling: ${claims.length} claims found for summary ${summaryId}. Status: complete.`
+      );
       return {
         status: "complete",
-        videoData: latestSummary as VideoData,
+        claims: claims,
       };
     } else {
-      console.log(`Polling: Claims not yet processed for URL ${url}.`);
-      // Document exists, but claims are not ready
+      // If the array is empty, claims are not processed yet
+      console.log(
+        `Polling: Claims not yet processed for summary ${summaryId}. Status: processing.`
+      );
       return { status: "processing" };
     }
   } catch (error: any) {
-    console.error(`Polling Error checking status for URL ${url}:`, error);
+    // Errors from findAndFormatClaimsBySummaryId indicate a DB issue
+    console.error(
+      `Polling Error fetching claims for summary ${summaryId}:`,
+      error
+    );
     return {
       status: "error",
       error: `An unexpected error occurred during polling: ${error.message}`,

@@ -1,14 +1,15 @@
 import dbConnect from "@/lib/db/mongoose";
 import VideoSummaryModel from "@/models/VideoSummary";
+import FactBasedClaimModel from "@/models/claim";
 import { VideoSummary } from "@/types";
-import { FactBasedClaim } from "@/schemas/summary";
+import { FactBasedClaimData } from "@/types";
 
 type CreateVideoSummaryInput = Omit<
   VideoSummary,
-  "_id" | "rawSummary" | "createdAt" | "updatedAt"
+  "_id" | "claims" | "rawSummary" | "createdAt" | "updatedAt"
 >;
 
-export async function createVideoSummary(
+export async function saveVideoMetadata(
   data: CreateVideoSummaryInput
 ): Promise<VideoSummary> {
   await dbConnect();
@@ -29,27 +30,58 @@ export async function createVideoSummary(
   }
 }
 
-export async function updateVideoSummary(
-  id: string,
-  rawSummary: string,
-  claims: FactBasedClaim[]
-): Promise<VideoSummary> {
+export async function updateVideoSummary(id: string, rawSummary: string) {
   await dbConnect();
 
   try {
-    const updatedSummary = await VideoSummaryModel.findByIdAndUpdate(id, {
-      $set: { claims: claims, rawSummary: rawSummary },
-    });
+    const updatedSummary = await VideoSummaryModel.findByIdAndUpdate(
+      id,
+      {
+        $set: { rawSummary: rawSummary },
+      },
+      {
+        new: true,
+      }
+    ).lean();
 
-    console.log("Video summary updated successfully");
-    return updatedSummary;
+    if (!updatedSummary) {
+      console.error(
+        `Error updating summary: VideoSummary with id ${id} not found.`
+      );
+    } else console.log("Video summary updated successfully");
   } catch (error: any) {
-    console.error(`Error updating video summary ${id} in DB function:`, error);
+    console.error(`Error updating summary ${id} in DB function:`, error);
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((el: any) => el.message);
       throw new Error(`Validation Error during update: ${messages.join(", ")}`);
     }
-    throw new Error(`Failed to update video summary ${id} in database.`);
+    throw new Error(`Failed to update summary ${id} in database.`);
+  }
+}
+
+export async function saveClaims(id: string, claims: FactBasedClaimData[]) {
+  await dbConnect();
+
+  try {
+    const claimsToSave = claims.map((claimData) => ({
+      ...claimData,
+      summaryId: id,
+    }));
+
+    await FactBasedClaimModel.insertMany(claimsToSave);
+    console.log(
+      `${claimsToSave.length} claims saved successfully for summary ${id}`
+    );
+  } catch (error: any) {
+    console.error(
+      `Error saving summary and/or claims for summary ${id}:`,
+      error
+    );
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((el: any) => el.message);
+      throw new Error(`Validation Error: ${messages.join(", ")}`);
+    }
+    throw new Error(`Failed to save summary and/or claims for summary ${id}.`);
   }
 }
 
@@ -64,10 +96,10 @@ export async function findLatestVideoSummaryByUrl(
       url: url,
     })
       .sort({ createdAt: -1 }) // Get the most recent one
-      .lean() // Use .lean() for faster, plain JS object results if we don't need Mongoose documents
+      .lean()
       .exec();
 
-    return latestSummary as VideoSummary | null; // Cast might be needed depending on lean() usage
+    return latestSummary as VideoSummary | null;
   } catch (error: any) {
     console.error(
       `Database error finding latest summary for user ${userId} and url ${url}:`,

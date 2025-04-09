@@ -15,17 +15,14 @@ export default function Home() {
   const [rawSummaryText, setRawSummaryText] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
+  const [summaryId, setSummaryId] = useState<string>("");
   const abortControllerRef = useRef<AbortController | null>(null);
-
   const [startPolling, setStartPolling] = useState(false);
 
-  const {
-    pollingStatus,
-    videoData: claimsData,
-    pollingError,
-  } = useSummaryPolling({
+  const { pollingStatus, claims, pollingError } = useSummaryPolling({
     url: url,
     shouldPoll: startPolling,
+    summaryId: summaryId,
   });
 
   useEffect(() => {
@@ -60,6 +57,10 @@ export default function Home() {
 
       if (result.metadata) {
         setMetadata(result.metadata);
+      }
+
+      if (result.summaryId) {
+        setSummaryId(result.summaryId);
       }
 
       setIsStreaming(true);
@@ -184,7 +185,7 @@ export default function Home() {
                 {pollingError && `⚠️ Error: ${pollingError}`}
               </div>
             )}
-            {pollingStatus === "complete" && claimsData && (
+            {pollingStatus === "complete" && claims && (
               <div className="mt-4 p-2 text-sm text-green-700 bg-green-100 rounded">
                 ✅ Claim analysis complete.
               </div>

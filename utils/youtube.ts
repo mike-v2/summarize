@@ -1,5 +1,6 @@
-import { z } from "zod";
 import { YoutubeTranscript } from "youtube-transcript";
+import { z } from "zod";
+
 import { VideoMetadata, YoutubeTranscriptSegment } from "@/types";
 
 // Schema for YouTube URL validation
@@ -106,12 +107,6 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
       },
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        error: error.errors[0].message,
-      };
-    }
     if (error instanceof Error) {
       return {
         success: false,
@@ -152,12 +147,6 @@ export async function getYoutubeTranscript(
       },
     };
   } catch (error) {
-    if (error instanceof z.ZodError) {
-      return {
-        success: false,
-        error: error.errors[0].message,
-      };
-    }
     if (error instanceof Error) {
       return {
         success: false,

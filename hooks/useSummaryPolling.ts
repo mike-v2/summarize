@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 import { checkClaimStatus } from "@/app/actions/polling";
-import { FactBasedClaim } from "@/schemas/summary";
-import { VideoData } from "@/types";
+import { VideoData, FactBasedClaim } from "@/types";
 
 type ClientPollStatus =
   | "idle"
@@ -14,13 +13,14 @@ type ClientPollStatus =
 type UseSummaryPollingProps = {
   url: string;
   shouldPoll: boolean;
+  summaryId: string;
   pollingIntervalMs?: number;
   maxPollAttempts?: number;
 };
 
 type UseSummaryPollingReturn = {
   pollingStatus: ClientPollStatus;
-  videoData: VideoData | null;
+  claims: FactBasedClaim[] | null;
   pollingError: string | null;
 };
 
@@ -30,12 +30,13 @@ const DEFAULT_MAX_POLL_ATTEMPTS = 30;
 export function useSummaryPolling({
   url,
   shouldPoll,
+  summaryId,
   pollingIntervalMs = DEFAULT_POLLING_INTERVAL_MS,
   maxPollAttempts = DEFAULT_MAX_POLL_ATTEMPTS,
 }: UseSummaryPollingProps): UseSummaryPollingReturn {
   const [pollingStatus, setPollingStatus] = useState<ClientPollStatus>("idle");
   const [pollingError, setPollingError] = useState<string | null>(null);
-  const [videoData, setVideoData] = useState<VideoData | null>(null);
+  const [claims, setClaims] = useState<FactBasedClaim[] | null>(null);
   const pollingIntervalId = useRef<NodeJS.Timeout | null>(null);
   const pollAttempts = useRef(0);
 
@@ -48,7 +49,7 @@ export function useSummaryPolling({
       }
       // Reset state when polling stops explicitly
       setPollingStatus("idle");
-      setVideoData(null);
+      setClaims(null);
       setPollingError(null);
       pollAttempts.current = 0;
       return;
@@ -57,7 +58,7 @@ export function useSummaryPolling({
     // Start polling
     console.log(`Polling Hook: Activated for url: ${url}`);
     setPollingError(null); // Clear previous errors
-    setVideoData(null); // Clear previous data
+    setClaims(null); // Clear previous data
     pollAttempts.current = 0; // Reset attempts
     setPollingStatus("processing"); // Set initial status when starting
 
@@ -77,7 +78,7 @@ export function useSummaryPolling({
       );
 
       try {
-        const result = await checkClaimStatus(url);
+        const result = await checkClaimStatus(summaryId);
         console.log("Polling Hook: Action result:", result);
 
         // Only update status if polling is still supposed to be active
@@ -87,7 +88,7 @@ export function useSummaryPolling({
         setPollingStatus(result.status);
 
         if (result.status === "complete") {
-          setVideoData(result.videoData || null);
+          setClaims(result.claims || null);
           console.log("Polling Hook: Complete. Claims received.");
           if (pollingIntervalId.current)
             clearInterval(pollingIntervalId.current);
@@ -98,11 +99,6 @@ export function useSummaryPolling({
           if (pollingIntervalId.current)
             clearInterval(pollingIntervalId.current);
           pollingIntervalId.current = null;
-        } else if (result.status === "not_found") {
-          console.log(
-            "Polling Hook: Summary not found yet, continuing poll..."
-          );
-          setPollingStatus("processing"); // Display as processing
         } else {
           console.log("Polling Hook: Claims still processing...");
         }
@@ -141,5 +137,5 @@ export function useSummaryPolling({
     };
   }, [shouldPoll, url, pollingIntervalMs, maxPollAttempts]); // Dependencies for the effect
 
-  return { pollingStatus, videoData, pollingError };
+  return { pollingStatus, claims, pollingError };
 }
