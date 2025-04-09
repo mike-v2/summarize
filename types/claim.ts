@@ -15,7 +15,7 @@ export type FactBasedClaimData = {
 
 export type FactBasedClaim = FactBasedClaimData & {
   _id: string;
-  summaryId: string;
+  summaryId: Types.ObjectId;
   createdAt?: Date;
   updatedAt?: Date;
 };

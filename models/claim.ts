@@ -9,16 +9,21 @@ const evidenceSchema = new Schema<Evidence>({
   description: { type: String, required: true },
 });
 
-const factBasedClaimSchema = new Schema<FactBasedClaim>({
-  summaryId: {
-    type: Schema.Types.ObjectId,
-    ref: "VideoSummary",
-    required: true,
+const factBasedClaimSchema = new Schema<FactBasedClaim>(
+  {
+    summaryId: {
+      type: Schema.Types.ObjectId,
+      ref: "VideoSummary",
+      required: true,
+    },
+    text: { type: String, required: true },
+    timestamp: { type: String, required: true },
+    evidence: { type: [evidenceSchema], required: true },
   },
-  text: { type: String, required: true },
-  timestamp: { type: String, required: true },
-  evidence: { type: [evidenceSchema], required: true },
-});
+  {
+    timestamps: true,
+  }
+);
 
 export default mongoose.models.FactBasedClaim ||
   mongoose.model<FactBasedClaim>("FactBasedClaim", factBasedClaimSchema);
