@@ -17,7 +17,11 @@ export async function findClaimsBySummaryId(
       return [];
     }
 
-    return claims as unknown as FactBasedClaim[];
+    return (claims as unknown as FactBasedClaim[]).map((claim) => ({
+      ...claim,
+      _id: claim._id.toString(),
+      summaryId: claim.summaryId.toString(),
+    }));
   } catch (error: any) {
     console.error(
       `Database error finding claims for summary ${summaryId}:`,
