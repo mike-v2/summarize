@@ -1,10 +1,10 @@
 import dbConnect from "@/lib/db/mongoose";
 import FactBasedClaimModel from "@/models/claim";
-import { FactBasedClaim } from "@/types";
+import { Claim } from "@/types";
 
 export async function findClaimsBySummaryId(
   summaryId: string
-): Promise<FactBasedClaim[]> {
+): Promise<Claim[]> {
   await dbConnect();
   try {
     const claims = await FactBasedClaimModel.find({
@@ -17,7 +17,7 @@ export async function findClaimsBySummaryId(
       return [];
     }
 
-    return (claims as unknown as FactBasedClaim[]).map((claim) => ({
+    return (claims as unknown as Claim[]).map((claim) => ({
       ...claim,
       _id: claim._id.toString(),
       summaryId: claim.summaryId.toString(),

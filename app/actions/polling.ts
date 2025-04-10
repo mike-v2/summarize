@@ -3,13 +3,13 @@
 import { getServerSession } from "next-auth/next";
 import { nextAuthOptions } from "@/config/nextAuthOptions";
 import { findClaimsBySummaryId } from "@/lib/db/claims";
-import { FactBasedClaim } from "@/types";
+import { Claim } from "@/types";
 
 type PollStatus = "processing" | "complete" | "error";
 
 type PollResult = {
   status: PollStatus;
-  claims?: FactBasedClaim[];
+  claims?: Claim[];
   error?: string;
 };
 

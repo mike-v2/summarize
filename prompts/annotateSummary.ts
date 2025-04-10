@@ -15,7 +15,6 @@ Your task is to identify all **fact-based claims** from the provided summary. Fo
   "timestamp": "HH:MM:SS",
   "evidence": [
     {
-      "type": "primary" | "secondary" | "tertiary",
       "source": "string",
       "description": "string", 
       "timestamp": "HH:MM:SS"
@@ -23,11 +22,6 @@ Your task is to identify all **fact-based claims** from the provided summary. Fo
   ]
 }
 \`\`\`
-
-**Evidence Types Explained:**
-- **Primary:** Direct, original sources such as reports, leaked documents, or firsthand recordings.
-- **Secondary:** Sources summarizing primary sources, e.g., historical analyses, expert opinions.
-- **Tertiary:** Sources summarizing secondary sources, e.g., encyclopedias, general references.
 
 ## Example (One-Shot Learning):
 
@@ -43,7 +37,7 @@ Your task is to identify all **fact-based claims** from the provided summary. Fo
 ]
 \`\`\`
 
-### Summary (First Pass):
+### Summary:
 
 \`\`\`
 The debate mainly discussed economic issues. Employment increased by 3% after the tax reform bill was passed. The new housing policy created thousands of affordable homes.
@@ -59,7 +53,6 @@ The debate mainly discussed economic issues. Employment increased by 3% after th
       "timestamp": "00:03:45",
       "evidence": [
         {
-          "type": "primary",
           "source": "Bureau of Labor Statistics",
           "description": "Report confirms the 3% increase in employment.",
           "timestamp": "00:04:10"
@@ -71,7 +64,6 @@ The debate mainly discussed economic issues. Employment increased by 3% after th
       "timestamp": "00:05:22",
       "evidence": [
         {
-          "type": "secondary",
           "source": "Speaker Testimony",
           "description": "Speaker stated the new housing policy created thousands of affordable homes.",
           "timestamp": "00:05:22"
@@ -96,7 +88,7 @@ export function createAnnotateSummaryPrompt(
     ${transcript}
     \`\`\`
 
-    ### Summary (First Pass):
+    ### Summary:
 
     \`\`\`
     ${summary}

@@ -1,10 +1,10 @@
 import React from "react";
-import { FactBasedClaim } from "@/types"; // Import the claim type
+import { Claim } from "@/types"; // Import the claim type
 import { parseSimpleMarkdownToReact } from "@/utils/markdownParser";
 
 interface HighlightedSummaryProps {
   summaryText: string;
-  claims: FactBasedClaim[] | null;
+  claims: Claim[] | null;
 }
 
 // Helper function to escape regex special characters

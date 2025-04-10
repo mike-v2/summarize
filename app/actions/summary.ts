@@ -14,7 +14,7 @@ import {
 } from "@/utils/summary";
 import { getYoutubeTranscript, getVideoMetadata } from "@/utils/youtube";
 import { formatTranscriptTimestamps } from "@/utils/timestamp";
-import { type FactBasedClaimData } from "@/types";
+import { type ClaimData } from "@/types";
 import { VideoMetadata, YoutubeTranscriptSegment } from "@/types";
 
 type ActionResult = {
@@ -160,7 +160,7 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
 async function extractClaims(
   transcript: YoutubeTranscriptSegment[],
   rawSummary: string
-): Promise<FactBasedClaimData[]> {
+): Promise<ClaimData[]> {
   try {
     const formattedTranscript = JSON.stringify(
       formatTranscriptTimestamps(transcript)

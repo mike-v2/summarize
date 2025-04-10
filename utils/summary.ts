@@ -4,7 +4,7 @@ import {
   createAnnotateSummaryPrompt,
   ANNOTATE_SUMMARY_PROMPT,
 } from "@/prompts/annotateSummary";
-import { FactBasedClaimData } from "@/types";
+import { ClaimData } from "@/types";
 
 export async function llmGenerateSummary(
   text: string
@@ -50,7 +50,7 @@ export async function llmGenerateSummary(
 export async function llmExtractClaimsFromSummary(
   transcript: string,
   summary: string
-): Promise<FactBasedClaimData[]> {
+): Promise<ClaimData[]> {
   const client = new OpenAI({
     apiKey: process.env.DEEPSEEK_API_KEY,
     baseURL: "https://api.deepseek.com",
@@ -73,7 +73,7 @@ export async function llmExtractClaimsFromSummary(
 
   try {
     const parsedJson = JSON.parse(content as string);
-    return parsedJson.claims as FactBasedClaimData[];
+    return parsedJson.claims as ClaimData[];
   } catch (error) {
     console.error("Failed to parse LLM response as JSON:", error);
     throw new Error("Could not parse annotation response from LLM.");

@@ -1,19 +1,18 @@
 import { Types } from "mongoose";
 
 export type Evidence = {
-  type: "primary" | "secondary" | "tertiary";
   source: string;
   description: string;
   timestamp: string;
 };
 
-export type FactBasedClaimData = {
+export type ClaimData = {
   text: string;
   timestamp: string;
   evidence: Evidence[];
 };
 
-export type FactBasedClaim = FactBasedClaimData & {
+export type Claim = ClaimData & {
   _id: Types.ObjectId | string;
   summaryId: Types.ObjectId | string;
   createdAt?: Date;

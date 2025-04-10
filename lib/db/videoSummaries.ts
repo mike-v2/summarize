@@ -1,23 +1,23 @@
 import dbConnect from "@/lib/db/mongoose";
-import VideoSummaryModel from "@/models/VideoSummary";
+import VideoSummaryModel from "@/models/videoSummary";
 import FactBasedClaimModel from "@/models/claim";
 import { VideoSummary } from "@/types";
-import { FactBasedClaimData } from "@/types";
+import { ClaimData } from "@/types";
 
-type CreateVideoSummaryInput = Omit<
+type VideoSummaryData = Omit<
   VideoSummary,
   "_id" | "claims" | "rawSummary" | "createdAt" | "updatedAt"
 >;
 
 export async function saveVideoMetadata(
-  data: CreateVideoSummaryInput
+  data: VideoSummaryData
 ): Promise<VideoSummary> {
   await dbConnect();
 
   try {
     const newSummary = await VideoSummaryModel.create(data);
 
-    console.log("Video summary created successfully");
+    console.log("Video summary created successfully with metadata");
     return newSummary;
   } catch (error: any) {
     console.error("Error creating video summary in DB function:", error);
@@ -48,7 +48,7 @@ export async function updateVideoSummary(id: string, rawSummary: string) {
       console.error(
         `Error updating summary: VideoSummary with id ${id} not found.`
       );
-    } else console.log("Video summary updated successfully");
+    } else console.log("Video summary updated successfully with raw summary");
   } catch (error: any) {
     console.error(`Error updating summary ${id} in DB function:`, error);
     if (error.name === "ValidationError") {
@@ -59,7 +59,7 @@ export async function updateVideoSummary(id: string, rawSummary: string) {
   }
 }
 
-export async function saveClaims(id: string, claims: FactBasedClaimData[]) {
+export async function saveClaims(id: string, claims: ClaimData[]) {
   await dbConnect();
 
   try {

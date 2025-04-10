@@ -1,5 +1,5 @@
 import { Types } from "mongoose";
-import { FactBasedClaimData } from "@/types";
+import { ClaimData } from "@/types";
 
 export type VideoMetadata = {
   id: string;
@@ -50,5 +50,5 @@ export type VideoData = {
   description: string;
   publishedAt: Date;
   duration: string;
-  claims?: FactBasedClaimData[];
+  claims?: ClaimData[];
 };

@@ -1,7 +1,7 @@
 import mongoose, { Schema, Types } from "mongoose";
 import { VideoSummary } from "@/types";
 
-const VideoSummarySchema: Schema<VideoSummary> = new Schema(
+const videoSummarySchema: Schema<VideoSummary> = new Schema(
   {
     userId: [
       {
@@ -26,4 +26,4 @@ const VideoSummarySchema: Schema<VideoSummary> = new Schema(
 );
 
 export default mongoose.models.VideoSummary ||
-  mongoose.model<VideoSummary>("VideoSummary", VideoSummarySchema);
+  mongoose.model<VideoSummary>("VideoSummary", videoSummarySchema);

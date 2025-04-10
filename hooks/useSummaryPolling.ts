@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
 import { checkClaimStatus } from "@/app/actions/polling";
-import { FactBasedClaim } from "@/types";
+import { Claim } from "@/types";
 
 type ClientPollStatus =
   | "idle"
@@ -19,7 +19,7 @@ type UseSummaryPollingProps = {
 
 type UseSummaryPollingReturn = {
   pollingStatus: ClientPollStatus;
-  claims: FactBasedClaim[] | null;
+  claims: Claim[] | null;
   pollingError: string | null;
 };
 
@@ -34,7 +34,7 @@ export function useSummaryPolling({
 }: UseSummaryPollingProps): UseSummaryPollingReturn {
   const [pollingStatus, setPollingStatus] = useState<ClientPollStatus>("idle");
   const [pollingError, setPollingError] = useState<string | null>(null);
-  const [claims, setClaims] = useState<FactBasedClaim[] | null>(null);
+  const [claims, setClaims] = useState<Claim[] | null>(null);
   const pollingIntervalId = useRef<NodeJS.Timeout | null>(null);
   const pollAttempts = useRef(0);
 
