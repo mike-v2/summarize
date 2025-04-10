@@ -1,20 +1,22 @@
 import React from "react";
-import { Claim } from "@/types"; // Import the claim type
+import { Claim } from "@/types";
 import { parseSimpleMarkdownToReact } from "@/utils/markdownParser";
 
-interface HighlightedSummaryProps {
+type HighlightedSummaryProps = {
   summaryText: string;
   claims: Claim[] | null;
-}
+  onClaimClick?: (claim: Claim) => void;
+};
 
 // Helper function to escape regex special characters
 function escapeRegex(string: string): string {
   return string.replace(/[.*+?^${}()|[\\]\\]/g, "\\$&"); // $& means the whole matched string
 }
 
-// Helper map for claim lookup
-let claimTimestampMap = new Map<string, string>();
+// Define types for the map and regex accessible within the scope
+let claimMap = new Map<string, Claim>();
 let highlightRegex: RegExp | null = null;
+let currentOnClaimClick: ((claim: Claim) => void) | undefined = undefined;
 
 // Recursive function to render nodes, applying highlighting to text strings
 function renderNodeWithHighlighting(
@@ -29,16 +31,25 @@ function renderNodeWithHighlighting(
     return (
       <React.Fragment key={key}>
         {parts.map((part, index) => {
+          if (typeof part !== "string") {
+            return null; // Skip undefined/non-string parts
+          }
           const trimmedPart = part.trim();
-          const timestamp = claimTimestampMap.get(trimmedPart);
-          if (timestamp) {
+          const claim = claimMap.get(trimmedPart); // Get the full claim object
+          if (claim) {
             return (
               <React.Fragment key={`${key}-${index}`}>
-                <mark className="bg-yellow-200 rounded px-1 mx-0.5">
+                <mark
+                  className="bg-yellow-200 rounded px-1 mx-0.5 cursor-pointer hover:bg-yellow-300 transition-colors"
+                  onClick={() =>
+                    currentOnClaimClick && currentOnClaimClick(claim)
+                  }
+                  title="Click to see evidence"
+                >
                   {part}
                 </mark>
                 <span className="text-xs text-gray-500 ml-1">
-                  ({timestamp})
+                  ({claim.timestamp})
                 </span>
               </React.Fragment>
             );
@@ -77,8 +88,13 @@ function renderNodeWithHighlighting(
   return null;
 }
 
-function HighlightedSummary({ summaryText, claims }: HighlightedSummaryProps) {
+function HighlightedSummary({
+  summaryText,
+  claims,
+  onClaimClick,
+}: HighlightedSummaryProps) {
   const hasClaims = claims && claims.length > 0;
+  currentOnClaimClick = onClaimClick; // Make handler accessible to renderNodeWithHighlighting
 
   if (hasClaims) {
     // Build regex and map only if claims exist
@@ -89,12 +105,11 @@ function HighlightedSummary({ summaryText, claims }: HighlightedSummaryProps) {
       escapeRegex(claim.text.trim())
     );
     highlightRegex = new RegExp(`(${claimTexts.join("|")})`, "g");
-    claimTimestampMap = new Map(
-      claims.map((claim) => [claim.text.trim(), claim.timestamp])
-    );
+    // Store the full claim object in the map
+    claimMap = new Map(claims.map((claim) => [claim.text.trim(), claim]));
   } else {
     highlightRegex = null;
-    claimTimestampMap.clear();
+    claimMap.clear();
   }
 
   const paragraphs = summaryText.split("\n");

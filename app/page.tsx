@@ -4,9 +4,10 @@ import React, { useState, useRef, useEffect } from "react";
 
 import AuthStatus from "@/components/authStatus";
 import HighlightedSummary from "@/components/highlightedSummary";
+import ClaimDetailSidebar from "@/components/claimDetailSidebar";
 import { generateVideoSummary } from "@/app/actions/summary";
 import { useSummaryPolling } from "@/hooks/useSummaryPolling";
-import { VideoMetadata } from "@/types";
+import { VideoMetadata, Claim } from "@/types";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -18,6 +19,7 @@ export default function Home() {
   const [summaryId, setSummaryId] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [startPolling, setStartPolling] = useState(false);
+  const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
 
   // Determine if polling should be active
   const shouldPoll = startPolling && summaryId !== null;
@@ -122,6 +124,15 @@ export default function Home() {
     }
   };
 
+  // Handlers for claim selection and sidebar
+  const handleClaimClick = (claim: Claim) => {
+    setSelectedClaim(claim);
+  };
+
+  const handleCloseSidebar = () => {
+    setSelectedClaim(null);
+  };
+
   return (
     <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-gray-100">
       <div className="z-10 max-w-4xl w-full items-center justify-between font-mono text-sm lg:flex mb-8">
@@ -166,6 +177,7 @@ export default function Home() {
               <HighlightedSummary
                 summaryText={rawSummaryText}
                 claims={claimsData}
+                onClaimClick={handleClaimClick}
               />
 
               {isStreaming && !rawSummaryText && (
@@ -195,6 +207,9 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      {/* Render Sidebar */}
+      <ClaimDetailSidebar claim={selectedClaim} onClose={handleCloseSidebar} />
     </main>
   );
 }
