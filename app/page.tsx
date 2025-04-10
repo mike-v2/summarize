@@ -135,16 +135,15 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-gray-100">
-      <div className="z-10 max-w-4xl w-full items-center justify-between font-mono text-sm lg:flex mb-8">
-        <h1 className="text-2xl font-bold mb-4 lg:mb-0 text-center lg:text-left w-full">
-          Video Summarizer
-        </h1>
-        <div className="text-right">
-          <AuthStatus />
+      <div className="flex flex-col gap-4 max-w-2xl w-full">
+        <div className="items-center justify-between font-mono lg:flex mb-8">
+          <h1 className="text-2xl font-bold mb-4 lg:mb-0 text-center lg:text-left w-full">
+            Video Summarizer
+          </h1>
+          <div className="text-right text-sm">
+            <AuthStatus />
+          </div>
         </div>
-      </div>
-
-      <div className="w-full max-w-4xl bg-white p-6 rounded-lg shadow-md">
         <form onSubmit={handleSubmit} className="mb-6">
           <input
             type="text"
@@ -167,49 +166,61 @@ export default function Home() {
           </button>
           {error && <p className="text-red-500 mt-2 text-sm">Error: {error}</p>}
         </form>
-
-        {(loading || rawSummaryText || metadata) && (
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold mb-4">
-              {metadata?.title || "Summary"}
-            </h2>
-            <div className="p-4 bg-gray-50 rounded text-gray-800 leading-relaxed">
-              <HighlightedSummary
-                summaryText={rawSummaryText}
-                claims={claimsData}
-                onClaimClick={handleClaimClick}
-              />
-
-              {isStreaming && !rawSummaryText && (
-                <p className="animate-pulse">Loading initial stream...</p>
-              )}
-            </div>
-
-            {/* Polling Status Display */}
-            {/* Conditionally render based on shouldPoll or summaryId existing */}
-            {shouldPoll && pollingStatus !== "complete" && (
-              <div className="mt-4 p-2 text-sm text-gray-600 bg-gray-100 rounded">
-                {pollingStatus === "processing" &&
-                  "⚙️ Analyzing summary for claims..."}
-                {pollingError && `⚠️ Polling Error: ${pollingError}`}
-              </div>
-            )}
-            {pollingStatus === "complete" && claimsData && (
-              <div className="mt-4 p-2 text-sm text-green-700 bg-green-100 rounded">
-                ✅ Claim analysis complete.
-              </div>
-            )}
-            {pollingStatus === "error" && pollingError && (
-              <div className="mt-4 p-2 text-sm text-red-700 bg-red-100 rounded">
-                ❌ Error during claim analysis: {pollingError}
-              </div>
-            )}
-          </div>
-        )}
       </div>
 
-      {/* Render Sidebar */}
-      <ClaimDetailSidebar claim={selectedClaim} onClose={handleCloseSidebar} />
+      <div className="flex gap-4 w-full justify-center transition-all">
+        <div className="bg-white max-w-4xl p-6 rounded-lg shadow-md h-full">
+          {(loading || rawSummaryText || metadata) && (
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold mb-4">
+                {metadata?.title || "Summary"}
+              </h2>
+              <div className="p-4 bg-gray-50 rounded text-gray-800 leading-relaxed">
+                <HighlightedSummary
+                  summaryText={rawSummaryText}
+                  claims={claimsData}
+                  onClaimClick={handleClaimClick}
+                />
+
+                {isStreaming && !rawSummaryText && (
+                  <p className="animate-pulse">Loading initial stream...</p>
+                )}
+              </div>
+
+              {/* Polling Status Display */}
+              {/* Conditionally render based on shouldPoll or summaryId existing */}
+              {shouldPoll && pollingStatus !== "complete" && (
+                <div className="mt-4 p-2 text-sm text-gray-600 bg-gray-100 rounded">
+                  {pollingStatus === "processing" &&
+                    "⚙️ Analyzing summary for claims..."}
+                  {pollingError && `⚠️ Polling Error: ${pollingError}`}
+                </div>
+              )}
+              {pollingStatus === "complete" && claimsData && (
+                <div className="mt-4 p-2 text-sm text-green-700 bg-green-100 rounded">
+                  ✅ Claim analysis complete.
+                </div>
+              )}
+              {pollingStatus === "error" && pollingError && (
+                <div className="mt-4 p-2 text-sm text-red-700 bg-red-100 rounded">
+                  ❌ Error during claim analysis: {pollingError}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div
+          className={`transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 ${
+            selectedClaim ? "w-full md:w-96" : "w-0"
+          }`}
+        >
+          <ClaimDetailSidebar
+            claim={selectedClaim}
+            onClose={handleCloseSidebar}
+          />
+        </div>
+      </div>
     </main>
   );
 }
