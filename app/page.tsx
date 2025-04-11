@@ -3,7 +3,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
 
-import AuthStatus from "@/components/authStatus";
 import { generateVideoSummary } from "@/app/actions/summary";
 import { useSummaryPolling } from "@/hooks/useSummaryPolling";
 import { VideoMetadata, Claim } from "@/types";
@@ -11,9 +10,10 @@ import { VideoMetadata, Claim } from "@/types";
 import HighlightedSummary from "@/app/home.components/highlightedSummary";
 import ClaimDetailSidebar from "@/app/home.components/claimDetailSidebar";
 import MetadataView from "@/app/home.components/metadataView";
+import Heading from "@/app/home.components/heading";
+import InputForm from "@/app/home.components/inputForm";
 
 export default function Home() {
-  const [url, setUrl] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [rawSummaryText, setRawSummaryText] = useState<string>("");
@@ -24,16 +24,14 @@ export default function Home() {
   const [startPolling, setStartPolling] = useState(false);
   const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
 
-  // Determine if polling should be active
   const shouldPoll = startPolling && summaryId !== null;
-
   const {
     pollingStatus,
     claims: claimsData,
     pollingError,
   } = useSummaryPolling({
     summaryId: summaryId ?? "",
-    shouldPoll: shouldPoll, // Use the combined condition
+    shouldPoll: shouldPoll,
   });
 
   useEffect(() => {
@@ -44,7 +42,7 @@ export default function Home() {
     };
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent, url: string) => {
     e.preventDefault();
     setLoading(true);
     setError("");
@@ -127,7 +125,6 @@ export default function Home() {
     }
   };
 
-  // Handlers for claim selection and sidebar
   const handleClaimClick = (claim: Claim) => {
     setSelectedClaim(claim);
   };
@@ -141,38 +138,12 @@ export default function Home() {
       <div className="flex gap-12 w-full justify-center">
         {metadata && <MetadataView metadata={metadata} />}
         <div className="flex flex-col gap-4 max-w-lg w-full">
-          <div className="items-center justify-between font-mono lg:flex mb-8">
-            <h1 className="text-2xl font-bold mb-4 lg:mb-0 text-center lg:text-left w-full">
-              Video Summarizer
-            </h1>
-            <div className="text-right text-sm">
-              <AuthStatus />
-            </div>
-          </div>
-          <form onSubmit={handleSubmit} className="mb-6">
-            <input
-              type="text"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="Enter YouTube URL"
-              className="w-full p-2 border rounded mb-2"
-              required
-            />
-            <button
-              type="submit"
-              disabled={loading || isStreaming}
-              className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
-            >
-              {loading
-                ? "Loading..."
-                : isStreaming
-                ? "Streaming..."
-                : "Generate Summary"}
-            </button>
-            {error && (
-              <p className="text-red-500 mt-2 text-sm">Error: {error}</p>
-            )}
-          </form>
+          <Heading />
+          <InputForm
+            handleSubmit={handleSubmit}
+            disabled={loading || isStreaming}
+            error={error}
+          />
         </div>
       </div>
 
@@ -193,7 +164,6 @@ export default function Home() {
               </div>
 
               {/* Polling Status Display */}
-              {/* Conditionally render based on shouldPoll or summaryId existing */}
               {shouldPoll && pollingStatus !== "complete" && (
                 <div className="mt-4 p-2 text-sm text-gray-600 bg-gray-100 rounded">
                   {pollingStatus === "processing" &&
