@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { twMerge } from "tailwind-merge";
 
 import AuthStatus from "@/components/authStatus";
 import { generateVideoSummary } from "@/app/actions/summary";
@@ -215,14 +216,17 @@ export default function Home() {
         </div>
 
         <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 ${
-            selectedClaim ? "w-full md:w-96" : "w-0"
-          }`}
+          className={twMerge(
+            "transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 w-0",
+            selectedClaim && "w-96"
+          )}
         >
-          <ClaimDetailSidebar
-            claim={selectedClaim}
-            onClose={handleCloseSidebar}
-          />
+          {selectedClaim && (
+            <ClaimDetailSidebar
+              claim={selectedClaim}
+              onClose={handleCloseSidebar}
+            />
+          )}
         </div>
       </div>
     </main>
