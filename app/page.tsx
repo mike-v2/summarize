@@ -3,11 +3,13 @@
 import React, { useState, useRef, useEffect } from "react";
 
 import AuthStatus from "@/components/authStatus";
-import HighlightedSummary from "@/components/highlightedSummary";
-import ClaimDetailSidebar from "@/components/claimDetailSidebar";
 import { generateVideoSummary } from "@/app/actions/summary";
 import { useSummaryPolling } from "@/hooks/useSummaryPolling";
 import { VideoMetadata, Claim } from "@/types";
+
+import HighlightedSummary from "@/app/home.components/highlightedSummary";
+import ClaimDetailSidebar from "@/app/home.components/claimDetailSidebar";
+import MetadataView from "@/app/home.components/metadataView";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -135,46 +137,48 @@ export default function Home() {
 
   return (
     <main className="flex min-h-screen flex-col items-center p-4 md:p-24 bg-gray-100">
-      <div className="flex flex-col gap-4 max-w-2xl w-full">
-        <div className="items-center justify-between font-mono lg:flex mb-8">
-          <h1 className="text-2xl font-bold mb-4 lg:mb-0 text-center lg:text-left w-full">
-            Video Summarizer
-          </h1>
-          <div className="text-right text-sm">
-            <AuthStatus />
+      <div className="flex gap-12 w-full justify-center">
+        {metadata && <MetadataView metadata={metadata} />}
+        <div className="flex flex-col gap-4 max-w-lg w-full">
+          <div className="items-center justify-between font-mono lg:flex mb-8">
+            <h1 className="text-2xl font-bold mb-4 lg:mb-0 text-center lg:text-left w-full">
+              Video Summarizer
+            </h1>
+            <div className="text-right text-sm">
+              <AuthStatus />
+            </div>
           </div>
+          <form onSubmit={handleSubmit} className="mb-6">
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="Enter YouTube URL"
+              className="w-full p-2 border rounded mb-2"
+              required
+            />
+            <button
+              type="submit"
+              disabled={loading || isStreaming}
+              className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
+            >
+              {loading
+                ? "Loading..."
+                : isStreaming
+                ? "Streaming..."
+                : "Generate Summary"}
+            </button>
+            {error && (
+              <p className="text-red-500 mt-2 text-sm">Error: {error}</p>
+            )}
+          </form>
         </div>
-        <form onSubmit={handleSubmit} className="mb-6">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="Enter YouTube URL"
-            className="w-full p-2 border rounded mb-2"
-            required
-          />
-          <button
-            type="submit"
-            disabled={loading || isStreaming}
-            className="w-full p-2 bg-blue-500 text-white rounded hover:bg-blue-600 disabled:bg-gray-400"
-          >
-            {loading
-              ? "Loading..."
-              : isStreaming
-              ? "Streaming..."
-              : "Generate Summary"}
-          </button>
-          {error && <p className="text-red-500 mt-2 text-sm">Error: {error}</p>}
-        </form>
       </div>
 
       <div className="flex gap-4 w-full justify-center transition-all">
         <div className="bg-white max-w-4xl p-6 rounded-lg shadow-md h-full">
           {(loading || rawSummaryText || metadata) && (
             <div className="mb-6">
-              <h2 className="text-xl font-semibold mb-4">
-                {metadata?.title || "Summary"}
-              </h2>
               <div className="p-4 bg-gray-50 rounded text-gray-800 leading-relaxed">
                 <HighlightedSummary
                   summaryText={rawSummaryText}
