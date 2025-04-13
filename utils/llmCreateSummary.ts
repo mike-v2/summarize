@@ -1,20 +1,16 @@
 import OpenAI from "openai";
 import { SIMPLE_SUMMARIZE_SYSTEM_PROMPT } from "@/prompts/summarize";
+import { deepseekClient } from "@/config/llmClient";
 
 export async function llmGenerateSummary(
   text: string
 ): Promise<ReadableStream<Uint8Array>> {
-  const client = new OpenAI({
-    apiKey: process.env.DEEPSEEK_API_KEY,
-    baseURL: "https://api.deepseek.com",
-  });
-
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: SIMPLE_SUMMARIZE_SYSTEM_PROMPT },
     { role: "user", content: text },
   ];
 
-  const stream = await client.chat.completions.create({
+  const stream = await deepseekClient.chat.completions.create({
     model: "deepseek-chat",
     messages,
     stream: true,
