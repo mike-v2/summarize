@@ -70,7 +70,7 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
       videoId: transcriptData.videoId,
       url,
       title: metadata.title,
-      description: metadata.description,
+      description: metadata.description || "No description available",
       publishedAt: new Date(metadata.publishedAt),
       duration: String(metadata.duration),
     };
