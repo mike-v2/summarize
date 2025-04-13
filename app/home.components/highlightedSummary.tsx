@@ -1,14 +1,13 @@
 import React from "react";
 import { parseSimpleMarkdownToReact } from "@/utils/markdownParser";
 
-// Define a helper function to identify bullet points
 const isBulletPoint = (line: string): boolean => {
   return line.trim().startsWith("-");
 };
 
 interface HighlightedSummaryProps {
   summaryText: string;
-  onBulletPointClick: (bulletText: string) => void; // New prop
+  onBulletPointClick: (bulletText: string, lineNumber: number) => void;
 }
 
 const HighlightedSummary: React.FC<HighlightedSummaryProps> = ({
@@ -22,10 +21,6 @@ const HighlightedSummary: React.FC<HighlightedSummaryProps> = ({
   return (
     <div>
       {lines.map((line, index) => {
-        const trimmedLine = line.trim();
-        const isBullet = isBulletPoint(trimmedLine);
-
-        // 1. Parse the line with the markdown parser
         const nodes = parseSimpleMarkdownToReact(line);
 
         // Render the parsed nodes
@@ -40,14 +35,15 @@ const HighlightedSummary: React.FC<HighlightedSummaryProps> = ({
           return null; // Handle other potential node types
         });
 
-        if (isBullet) {
+        const trimmedLine = line.trim();
+        if (isBulletPoint(trimmedLine)) {
           // Make the entire bullet point line clickable
           return (
             <div // Use div instead of p for block behavior with nested elements
               key={index}
               className="cursor-pointer hover:bg-gray-200 transition-colors duration-150 p-1 rounded mb-1" // Added margin-bottom
               onClick={() =>
-                onBulletPointClick(trimmedLine.substring(1).trim())
+                onBulletPointClick(trimmedLine.substring(1).trim(), index)
               } // Pass the text after the hyphen
             >
               {renderedContent} {/* Display parsed markdown content */}

@@ -13,6 +13,8 @@ import MetadataView from "@/app/home.components/metadataView";
 import Heading from "@/app/home.components/heading";
 import InputForm from "@/app/home.components/inputForm";
 
+type CachedClaim = Claim & { lineNumber: number };
+
 export default function Home() {
   const [error, setError] = useState("");
   const [rawSummaryText, setRawSummaryText] = useState<string>("");
@@ -27,6 +29,7 @@ export default function Home() {
     null
   );
   const [annotatingClaim, setAnnotatingClaim] = useState(false);
+  const [cachedClaims, setCachedClaims] = useState<CachedClaim[]>([]);
 
   useEffect(() => {
     return () => {
@@ -108,7 +111,10 @@ export default function Home() {
     }
   };
 
-  const handleBulletPointClick = async (bulletText: string) => {
+  const handleBulletPointClick = async (
+    bulletText: string,
+    lineNumber: number
+  ) => {
     if (!transcript || !rawSummaryText) {
       setError("Missing transcript or summary for annotation.");
       return;
@@ -116,6 +122,15 @@ export default function Home() {
     setSelectedClaimData(null);
     setAnnotatingClaim(true);
     setError("");
+
+    const cachedClaim = cachedClaims.find(
+      (claim) => claim.lineNumber === lineNumber
+    );
+    if (cachedClaim) {
+      setSelectedClaimData(cachedClaim);
+      setAnnotatingClaim(false);
+      return;
+    }
 
     try {
       const claimDetails = await annotateClaim(
@@ -127,6 +142,10 @@ export default function Home() {
       console.log("Annotation result:", claimDetails);
       if (claimDetails) {
         setSelectedClaimData(claimDetails);
+        setCachedClaims((prevClaims) => [
+          ...prevClaims,
+          { ...claimDetails, lineNumber },
+        ]);
       } else {
         setError("Could not retrieve details for this point.");
       }
