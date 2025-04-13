@@ -15,7 +15,6 @@ import InputForm from "@/app/home.components/inputForm";
 
 export default function Home() {
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [rawSummaryText, setRawSummaryText] = useState<string>("");
   const [isStreaming, setIsStreaming] = useState(false);
   const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
@@ -39,7 +38,6 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent, url: string) => {
     e.preventDefault();
-    setLoading(true);
     setError("");
     setRawSummaryText("");
     setIsStreaming(false);
@@ -63,7 +61,6 @@ export default function Home() {
 
       if (!success || !(stream instanceof ReadableStream)) {
         setError(actionError || "Failed to initialize streaming");
-        setLoading(false);
         return;
       }
 
@@ -106,7 +103,6 @@ export default function Home() {
     } catch (err: any) {
       setError(err.message || "An unexpected error occurred");
       console.error(err);
-      setLoading(false);
       setIsStreaming(false);
       abortControllerRef.current = null;
     }
@@ -154,7 +150,7 @@ export default function Home() {
           <Heading />
           <InputForm
             handleSubmit={handleSubmit}
-            disabled={loading || isStreaming}
+            disabled={isStreaming}
             error={error}
           />
         </div>
@@ -162,7 +158,7 @@ export default function Home() {
 
       <div className="flex gap-4 w-full justify-center transition-all">
         <div className="bg-white max-w-4xl p-6 rounded-lg shadow-md h-full">
-          {(loading || rawSummaryText || metadata) && (
+          {(rawSummaryText || metadata) && (
             <div className="mb-6">
               <div className="p-4 bg-gray-50 rounded text-gray-800 leading-relaxed">
                 <HighlightedSummary
