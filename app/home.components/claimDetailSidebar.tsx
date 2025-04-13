@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { Claim, Evidence } from "@/types";
+import { twMerge } from "tailwind-merge";
+import { Claim, Evidence, Quote } from "@/types";
 
 type ClaimDetailSidebarProps = {
   claim: Claim | null;
@@ -12,8 +13,7 @@ type ClaimDetailSidebarProps = {
 // Skeleton component for placeholder UI
 const SkeletonLoader = ({ className = "" }: { className?: string }) => (
   <div
-    className={`bg-gray-200 rounded animate-pulse ${className}`}
-    style={{ minHeight: "1rem" }} // Ensure some height
+    className={twMerge("bg-gray-200 rounded animate-pulse h-4", className)}
   ></div>
 );
 
@@ -37,113 +37,9 @@ export default function ClaimDetailSidebar({
 
       <div className="flex-grow overflow-y-auto">
         {isLoading ? (
-          // Loading State: Show Skeleton Loaders
-          <div className="space-y-6">
-            {/* Claim Skeleton */}
-            <div>
-              <h3 className="font-medium mb-1">Claim:</h3>
-              <SkeletonLoader className="h-10" />
-              <SkeletonLoader className="h-4 w-1/3 mt-1" />
-            </div>
-
-            {/* Explanation Skeleton */}
-            <div>
-              <h3 className="font-medium mb-1">Explanation:</h3>
-              <SkeletonLoader className="h-16" />
-            </div>
-
-            {/* Quotes Skeleton */}
-            <div>
-              <h3 className="font-medium mb-2">Supporting Quotes:</h3>
-              <div className="space-y-2">
-                <SkeletonLoader className="h-8" />
-                <SkeletonLoader className="h-8" />
-              </div>
-            </div>
-
-            {/* Evidence Skeleton */}
-            <div>
-              <h3 className="font-medium mb-2">Evidence:</h3>
-              <div className="space-y-3">
-                <div className="border p-3 rounded bg-gray-50">
-                  <SkeletonLoader className="h-5 w-3/4 mb-1" />
-                  <SkeletonLoader className="h-4 w-full mb-1" />
-                  <SkeletonLoader className="h-3 w-1/4" />
-                </div>
-                <div className="border p-3 rounded bg-gray-50">
-                  <SkeletonLoader className="h-5 w-3/4 mb-1" />
-                  <SkeletonLoader className="h-4 w-full mb-1" />
-                  <SkeletonLoader className="h-3 w-1/4" />
-                </div>
-              </div>
-            </div>
-          </div>
+          <LoadingView />
         ) : claim ? (
-          // Data Loaded State: Show Claim Details
-          <>
-            <div className="mb-6">
-              <h3 className="font-medium mb-1">Claim:</h3>
-              <p className="bg-yellow-100 p-2 rounded text-sm text-gray-800">
-                {claim.claim}
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                Timestamp: {claim.timestamp}
-              </p>
-            </div>
-
-            <div className="mb-6">
-              <h3 className="font-medium mb-1">Explanation:</h3>
-              <p className="bg-blue-50 p-2 rounded text-sm text-gray-800">
-                {claim.explanation}
-              </p>
-            </div>
-
-            {claim.quotes && claim.quotes.length > 0 && (
-              <div className="mb-6">
-                <h3 className="font-medium mb-2">Supporting Quotes:</h3>
-                <ul className="space-y-2 list-disc list-inside">
-                  {claim.quotes.map((quote: string, index: number) => (
-                    <li
-                      key={index}
-                      className="text-sm text-gray-700 bg-gray-50 p-2 rounded"
-                    >
-                      "{quote}"
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            <div>
-              <h3 className="font-medium mb-2">Evidence:</h3>
-              {claim.evidence && claim.evidence.length > 0 ? (
-                <ul className="space-y-3">
-                  {claim.evidence.map((evi: Evidence, index: number) => (
-                    <li
-                      key={index}
-                      className="border p-3 rounded bg-gray-50 text-sm"
-                    >
-                      <p className="font-semibold mb-1">
-                        Source:{" "}
-                        <span className="font-normal">{evi.source}</span>
-                      </p>
-                      <p className="mb-1">
-                        Description:{" "}
-                        <span className="font-normal">{evi.description}</span>
-                      </p>
-                      <p className="text-xs text-gray-500">
-                        Timestamp: {evi.timestamp}
-                      </p>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="text-sm text-gray-500">
-                  No evidence provided for this claim.
-                </p>
-              )}
-            </div>
-          </>
+          <DataView claim={claim} />
         ) : (
           // Error/No Data State (if needed, could show an error message)
           <p className="text-gray-500">Could not load claim details.</p>
@@ -166,5 +62,119 @@ export default function ClaimDetailSidebar({
         </button>
       </div>
     </div>
+  );
+}
+
+function LoadingView() {
+  return (
+    // Loading State: Show Skeleton Loaders
+    <div className="space-y-6">
+      {/* Claim Skeleton */}
+      <div>
+        <h3 className="font-medium mb-1">Claim:</h3>
+        <SkeletonLoader className="h-10" />
+        <SkeletonLoader className="w-1/3 mt-1" />
+      </div>
+
+      {/* Explanation Skeleton */}
+      <div>
+        <h3 className="font-medium mb-1">Explanation:</h3>
+        <SkeletonLoader className="h-16" />
+      </div>
+
+      {/* Quotes Skeleton */}
+      <div>
+        <h3 className="font-medium mb-2">Supporting Quotes:</h3>
+        <div className="space-y-2">
+          <SkeletonLoader className="h-8" />
+          <SkeletonLoader className="h-8" />
+        </div>
+      </div>
+
+      {/* Evidence Skeleton */}
+      <div>
+        <h3 className="font-medium mb-2">Evidence:</h3>
+        <div className="space-y-3">
+          <div className="border p-3 rounded bg-gray-50">
+            <SkeletonLoader className="h-6 w-3/4 mb-1" />
+            <SkeletonLoader className="w-full mb-1" />
+            <SkeletonLoader className="w-1/4" />
+          </div>
+          <div className="border p-3 rounded bg-gray-50">
+            <SkeletonLoader className="h-6 w-3/4 mb-1" />
+            <SkeletonLoader className="w-full mb-1" />
+            <SkeletonLoader className="w-1/4" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DataView({ claim }: { claim: Claim }) {
+  return (
+    // Data Loaded State: Show Claim Details
+    <>
+      <div className="mb-6">
+        <h3 className="font-medium mb-1">Claim:</h3>
+        <p className="bg-yellow-100 p-2 rounded text-sm text-gray-800">
+          {claim.claim}
+        </p>
+        <p className="text-xs text-gray-500 mt-1">
+          Timestamp: {claim.timestamp}
+        </p>
+      </div>
+
+      <div className="mb-6">
+        <h3 className="font-medium mb-1">Explanation:</h3>
+        <p className="bg-blue-50 p-2 rounded text-sm text-gray-800">
+          {claim.explanation}
+        </p>
+      </div>
+
+      {claim.quotes && claim.quotes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Supporting Quotes:</h3>
+          <ul className="space-y-2 list-disc list-inside">
+            {/* TODO: Add button to play video at timestamp */}
+            {claim.quotes.map((quote: Quote, index: number) => (
+              <li
+                key={index}
+                className="text-sm text-gray-700 bg-gray-50 p-2 rounded"
+              >
+                "{quote.text}"
+                <p className="text-xs text-gray-500 mt-1">{quote.timestamp}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      <div>
+        <h3 className="font-medium mb-2">Evidence:</h3>
+        {claim.evidence && claim.evidence.length > 0 ? (
+          <ul className="space-y-3">
+            {claim.evidence.map((evi: Evidence, index: number) => (
+              <li key={index} className="border p-3 rounded bg-gray-50 text-sm">
+                <p className="font-semibold mb-1">
+                  Source: <span className="font-normal">{evi.source}</span>
+                </p>
+                <p className="mb-1">
+                  Description:{" "}
+                  <span className="font-normal">{evi.description}</span>
+                </p>
+                <p className="text-xs text-gray-500">
+                  Timestamp: {evi.timestamp}
+                </p>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-gray-500">
+            No evidence provided for this claim.
+          </p>
+        )}
+      </div>
+    </>
   );
 }
