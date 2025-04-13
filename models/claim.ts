@@ -1,5 +1,5 @@
 import mongoose, { Schema } from "mongoose";
-import { Evidence } from "@/types";
+import { Evidence, Quote } from "@/types";
 import { Claim } from "@/types";
 
 const evidenceSchema = new Schema<Evidence>(
@@ -7,6 +7,14 @@ const evidenceSchema = new Schema<Evidence>(
     timestamp: { type: String, required: true },
     source: { type: String, required: true },
     description: { type: String, required: true },
+  },
+  { _id: false }
+);
+
+const quoteSchema = new Schema<Quote>(
+  {
+    text: { type: String, required: true },
+    timestamp: { type: String, required: true },
   },
   { _id: false }
 );
@@ -20,7 +28,7 @@ const claimSchema = new Schema<Claim>(
     },
     claim: { type: String, required: true },
     explanation: { type: String, required: true },
-    quotes: { type: [String], required: true },
+    quotes: { type: [quoteSchema], required: true },
     timestamp: { type: String, required: true },
     evidence: { type: [evidenceSchema], required: true },
   },

@@ -6,10 +6,15 @@ export type Evidence = {
   timestamp: string;
 };
 
+export type Quote = {
+  text: string;
+  timestamp: string;
+};
+
 export type ClaimData = {
   claim: string;
   explanation: string;
-  quotes: string[];
+  quotes: Quote[];
   timestamp: string;
   evidence: Evidence[];
 };
