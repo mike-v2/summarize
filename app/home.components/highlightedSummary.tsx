@@ -54,16 +54,46 @@ const HighlightedSummary: React.FC<HighlightedSummaryProps> = ({
             </div>
           );
         } else {
-          // Render non-bullet point lines, handling potential empty lines/nodes
+          // For non-bullet lines, check if the parsed content contains block elements
+          const containsBlockElement = nodes.some(
+            (node) =>
+              React.isValidElement(node) &&
+              typeof node.type === "string" &&
+              [
+                "p",
+                "h1",
+                "h2",
+                "h3",
+                "h4",
+                "h5",
+                "h6",
+                "div",
+                "ul",
+                "ol",
+                "li",
+                "blockquote",
+                "pre",
+                "hr",
+                "table",
+              ].includes(node.type)
+          );
+
+          // Handle empty lines
           if (nodes.length === 0 || (nodes.length === 1 && nodes[0] === "")) {
-            // Render a non-breaking space for visually empty lines to maintain spacing
             return (
-              <p key={index} className="mb-1 min-h-[1em]">
-                {"\u00A0"}
-              </p>
+              <div key={index} className="mb-1 min-h-[1em]">
+                {"\u00A0"} {/* Non-breaking space for empty lines */}
+              </div>
+            );
+          } else if (containsBlockElement) {
+            // If it contains block elements, render inside a div
+            return (
+              <div key={index} className="mb-1">
+                {renderedContent}
+              </div>
             );
           } else {
-            // Wrap parsed non-bullet content in a paragraph
+            // Otherwise, wrap inline content in a paragraph
             return (
               <p key={index} className="mb-1 min-h-[1em]">
                 {renderedContent}
