@@ -7,7 +7,9 @@ export type Evidence = {
 };
 
 export type ClaimData = {
-  text: string;
+  claim: string;
+  explanation: string;
+  quotes: string[];
   timestamp: string;
   evidence: Evidence[];
 };

@@ -28,16 +28,39 @@ export default function ClaimDetailSidebar({
       <div className="mb-6">
         <h3 className="font-medium mb-1">Claim:</h3>
         <p className="bg-yellow-100 p-2 rounded text-sm text-gray-800">
-          {claim.text}
+          {claim.claim}
         </p>
         <p className="text-xs text-gray-500 mt-1">
           Timestamp: {claim.timestamp}
         </p>
       </div>
 
+      <div className="mb-6">
+        <h3 className="font-medium mb-1">Explanation:</h3>
+        <p className="bg-blue-50 p-2 rounded text-sm text-gray-800">
+          {claim.explanation}
+        </p>
+      </div>
+
+      {claim.quotes && claim.quotes.length > 0 && (
+        <div className="mb-6">
+          <h3 className="font-medium mb-2">Supporting Quotes:</h3>
+          <ul className="space-y-2 list-disc list-inside">
+            {claim.quotes.map((quote: string, index: number) => (
+              <li
+                key={index}
+                className="text-sm text-gray-700 bg-gray-50 p-2 rounded"
+              >
+                "{quote}"
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       <div>
         <h3 className="font-medium mb-2">Evidence:</h3>
-        {claim.evidence.length > 0 ? (
+        {claim.evidence && claim.evidence.length > 0 ? (
           <ul className="space-y-3">
             {claim.evidence.map((evi: Evidence, index: number) => (
               <li key={index} className="border p-3 rounded bg-gray-50 text-sm">

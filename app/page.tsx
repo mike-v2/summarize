@@ -4,8 +4,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { twMerge } from "tailwind-merge";
 
 import { generateVideoSummary } from "@/app/actions/summary";
-import { useSummaryPolling } from "@/hooks/useSummaryPolling";
-import { VideoMetadata, Claim } from "@/types";
+import { annotateClaim } from "@/app/actions/claimInfo";
+import { VideoMetadata, Claim, YoutubeTranscriptSegment } from "@/types";
 
 import HighlightedSummary from "@/app/home.components/highlightedSummary";
 import ClaimDetailSidebar from "@/app/home.components/claimDetailSidebar";
@@ -20,19 +20,14 @@ export default function Home() {
   const [isStreaming, setIsStreaming] = useState(false);
   const [metadata, setMetadata] = useState<VideoMetadata | null>(null);
   const [summaryId, setSummaryId] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState<
+    YoutubeTranscriptSegment[] | null
+  >(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const [startPolling, setStartPolling] = useState(false);
-  const [selectedClaim, setSelectedClaim] = useState<Claim | null>(null);
-
-  const shouldPoll = startPolling && summaryId !== null;
-  const {
-    pollingStatus,
-    claims: claimsData,
-    pollingError,
-  } = useSummaryPolling({
-    summaryId: summaryId ?? "",
-    shouldPoll: shouldPoll,
-  });
+  const [selectedClaimData, setSelectedClaimData] = useState<Claim | null>(
+    null
+  );
+  const [annotatingClaim, setAnnotatingClaim] = useState(false);
 
   useEffect(() => {
     return () => {
@@ -48,10 +43,9 @@ export default function Home() {
     setError("");
     setRawSummaryText("");
     setIsStreaming(false);
-    setStartPolling(false);
     setMetadata(null);
+    setTranscript(null);
     setSummaryId(null);
-
     if (abortControllerRef.current) {
       abortControllerRef.current.abort();
     }
@@ -63,6 +57,7 @@ export default function Home() {
         stream,
         metadata: newMetadata,
         summaryId: newSummaryId,
+        transcript: newTranscript,
         error: actionError,
       } = await generateVideoSummary(url);
 
@@ -72,15 +67,17 @@ export default function Home() {
         return;
       }
 
-      if (newMetadata) {
-        setMetadata(newMetadata);
-      }
       if (newSummaryId) {
         setSummaryId(newSummaryId);
       }
+      if (newMetadata) {
+        setMetadata(newMetadata);
+      }
+      if (newTranscript) {
+        setTranscript(newTranscript);
+      }
 
       setIsStreaming(true);
-      setLoading(false);
       const reader = stream.getReader();
       const decoder = new TextDecoder();
 
@@ -104,15 +101,6 @@ export default function Home() {
       } finally {
         setIsStreaming(false);
         console.log("Stream finished.");
-        if (newSummaryId && !abortControllerRef.current?.signal.aborted) {
-          console.log(
-            "Setting startPolling to true with summaryId:",
-            newSummaryId
-          );
-          setStartPolling(true);
-        } else {
-          console.log("Polling skipped (no summaryId or aborted).");
-        }
         abortControllerRef.current = null;
       }
     } catch (err: any) {
@@ -120,17 +108,42 @@ export default function Home() {
       console.error(err);
       setLoading(false);
       setIsStreaming(false);
-      setStartPolling(false);
       abortControllerRef.current = null;
     }
   };
 
-  const handleClaimClick = (claim: Claim) => {
-    setSelectedClaim(claim);
+  const handleBulletPointClick = async (bulletText: string) => {
+    if (!transcript || !rawSummaryText) {
+      setError("Missing transcript or summary for annotation.");
+      return;
+    }
+    setAnnotatingClaim(true);
+    setSelectedClaimData(null);
+    setError("");
+
+    try {
+      const claimDetails = await annotateClaim(
+        transcript,
+        rawSummaryText,
+        summaryId || "",
+        bulletText.trim()
+      );
+      console.log("Annotation result:", claimDetails);
+      if (claimDetails) {
+        setSelectedClaimData(claimDetails);
+      } else {
+        setError("Could not retrieve details for this point.");
+      }
+    } catch (err: any) {
+      console.error("Annotation error:", err);
+      setError(err.message || "Failed to annotate the selected point.");
+    } finally {
+      setAnnotatingClaim(false);
+    }
   };
 
   const handleCloseSidebar = () => {
-    setSelectedClaim(null);
+    setSelectedClaimData(null);
   };
 
   return (
@@ -154,33 +167,13 @@ export default function Home() {
               <div className="p-4 bg-gray-50 rounded text-gray-800 leading-relaxed">
                 <HighlightedSummary
                   summaryText={rawSummaryText}
-                  claims={claimsData}
-                  onClaimClick={handleClaimClick}
+                  onBulletPointClick={handleBulletPointClick}
                 />
 
                 {isStreaming && !rawSummaryText && (
                   <p className="animate-pulse">Loading initial stream...</p>
                 )}
               </div>
-
-              {/* Polling Status Display */}
-              {shouldPoll && pollingStatus !== "complete" && (
-                <div className="mt-4 p-2 text-sm text-gray-600 bg-gray-100 rounded">
-                  {pollingStatus === "processing" &&
-                    "⚙️ Analyzing summary for claims..."}
-                  {pollingError && `⚠️ Polling Error: ${pollingError}`}
-                </div>
-              )}
-              {pollingStatus === "complete" && claimsData && (
-                <div className="mt-4 p-2 text-sm text-green-700 bg-green-100 rounded">
-                  ✅ Claim analysis complete.
-                </div>
-              )}
-              {pollingStatus === "error" && pollingError && (
-                <div className="mt-4 p-2 text-sm text-red-700 bg-red-100 rounded">
-                  ❌ Error during claim analysis: {pollingError}
-                </div>
-              )}
             </div>
           )}
         </div>
@@ -188,12 +181,17 @@ export default function Home() {
         <div
           className={twMerge(
             "transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0 w-0",
-            selectedClaim && "w-96"
+            selectedClaimData && "w-96"
           )}
         >
-          {selectedClaim && (
+          {annotatingClaim && (
+            <div className="bg-white p-6 rounded-lg shadow-md h-full flex items-center justify-center">
+              <p className="text-gray-500 animate-pulse">Loading details...</p>
+            </div>
+          )}
+          {!annotatingClaim && selectedClaimData && (
             <ClaimDetailSidebar
-              claim={selectedClaim}
+              claim={selectedClaimData}
               onClose={handleCloseSidebar}
             />
           )}

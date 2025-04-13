@@ -1,8 +1,6 @@
 import dbConnect from "@/lib/db/mongoose";
 import VideoSummaryModel from "@/models/videoSummary";
-import FactBasedClaimModel from "@/models/claim";
 import { VideoSummary } from "@/types";
-import { ClaimData } from "@/types";
 
 type VideoSummaryData = Omit<
   VideoSummary,
@@ -51,37 +49,6 @@ export async function updateVideoSummary(id: string, rawSummary: string) {
     } else console.log("Video summary updated successfully with raw summary");
   } catch (error: any) {
     console.error(`Error updating summary ${id} in DB function:`, error);
-    if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map((el: any) => el.message);
-      throw new Error(`Validation Error during update: ${messages.join(", ")}`);
-    }
-    throw new Error(`Failed to update summary ${id} in database.`);
-  }
-}
-
-export async function saveClaims(id: string, claims: ClaimData[]) {
-  await dbConnect();
-
-  try {
-    const claimsToSave = claims.map((claimData) => ({
-      ...claimData,
-      summaryId: id,
-    }));
-
-    await FactBasedClaimModel.insertMany(claimsToSave);
-    console.log(
-      `${claimsToSave.length} claims saved successfully for summary ${id}`
-    );
-  } catch (error: any) {
-    console.error(
-      `Error saving summary and/or claims for summary ${id}:`,
-      error
-    );
-    if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map((el: any) => el.message);
-      throw new Error(`Validation Error: ${messages.join(", ")}`);
-    }
-    throw new Error(`Failed to save summary and/or claims for summary ${id}.`);
   }
 }
 

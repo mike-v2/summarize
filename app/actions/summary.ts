@@ -3,18 +3,9 @@
 import { getServerSession } from "next-auth/next";
 
 import { nextAuthOptions } from "@/config/nextAuthOptions";
-import {
-  saveVideoMetadata,
-  saveClaims,
-  updateVideoSummary,
-} from "@/lib/db/videoSummaries";
-import {
-  llmExtractClaimsFromSummary,
-  llmGenerateSummary,
-} from "@/utils/summary";
+import { saveVideoMetadata, updateVideoSummary } from "@/lib/db/videoSummaries";
+import { llmGenerateSummary } from "@/utils/llmCreateSummary";
 import { getYoutubeTranscript, getVideoMetadata } from "@/utils/youtube";
-import { formatTranscriptTimestamps } from "@/utils/timestamp";
-import { type ClaimData } from "@/types";
 import { VideoMetadata, YoutubeTranscriptSegment } from "@/types";
 
 type ActionResult = {
@@ -22,6 +13,7 @@ type ActionResult = {
   stream?: ReadableStream<Uint8Array>;
   metadata?: VideoMetadata;
   summaryId?: string;
+  transcript?: YoutubeTranscriptSegment[];
   error?: string;
 };
 
@@ -64,7 +56,7 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
     }
     const transcriptData = transcriptResult.data;
 
-    // Save summary to DB
+    // Save summary to DB (initially just metadata)
     const summaryMetadata = {
       userId,
       videoId: transcriptData.videoId,
@@ -74,8 +66,6 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
       publishedAt: new Date(metadata.publishedAt),
       duration: String(metadata.duration),
     };
-    // Use await to avoid race condition
-    // Though db entry should be set by the time llm response is finished
     const savedSummaryPromise = saveVideoMetadata(summaryMetadata);
 
     const combinedTranscript = transcriptData.transcript
@@ -89,7 +79,6 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
       const reader = summaryStream.getReader();
       const writer = writable.getWriter();
       const textDecoder = new TextDecoder();
-      const textEncoder = new TextEncoder();
 
       let completeResponse = "";
 
@@ -105,24 +94,8 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
           await writer.write(value);
         }
 
-        try {
-          const savedSummary = await savedSummaryPromise;
-          updateVideoSummary(savedSummary._id.toString(), completeResponse);
-
-          const claims = await extractClaims(
-            transcriptData.transcript,
-            completeResponse
-          );
-
-          saveClaims(savedSummary._id.toString(), claims);
-        } catch (parseError) {
-          console.error("Error parsing summary:", parseError);
-
-          // Add error message to the stream
-          const errorMessage =
-            "\n\nERROR: Failed to process summary for saving.";
-          await writer.write(textEncoder.encode(errorMessage));
-        }
+        const savedSummary = await savedSummaryPromise;
+        updateVideoSummary(savedSummary._id.toString(), completeResponse);
       } catch (streamError) {
         console.error("Error processing summary stream:", streamError);
       } finally {
@@ -136,6 +109,7 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
       stream: readable,
       metadata: metadata,
       summaryId: savedSummary._id.toString(),
+      transcript: transcriptData.transcript,
     };
   } catch (error: any) {
     console.error("Error in generateVideoSummary action:", error);
@@ -154,21 +128,5 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
       success: false,
       error: "An unexpected error occurred while processing the video.",
     };
-  }
-}
-
-async function extractClaims(
-  transcript: YoutubeTranscriptSegment[],
-  rawSummary: string
-): Promise<ClaimData[]> {
-  try {
-    const formattedTranscript = JSON.stringify(
-      formatTranscriptTimestamps(transcript)
-    );
-
-    return await llmExtractClaimsFromSummary(rawSummary, formattedTranscript);
-  } catch (error) {
-    console.error(`Error processing/updating claims:`, error);
-    return [];
   }
 }
