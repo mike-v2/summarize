@@ -58,12 +58,12 @@ export default function Home() {
         stream,
         metadata: newMetadata,
         summaryId: newSummaryId,
-        transcript: newTranscript,
+        rawSummary: newRawSummary,
         error: actionError,
       } = await generateVideoSummary(url);
 
-      if (!success || !(stream instanceof ReadableStream)) {
-        setError(actionError || "Failed to initialize streaming");
+      if (!success) {
+        setError(actionError || "Something went wrong");
         return;
       }
 
@@ -73,8 +73,17 @@ export default function Home() {
       if (newMetadata) {
         setMetadata(newMetadata);
       }
-      if (newTranscript) {
-        setTranscript(newTranscript);
+      if (newMetadata?.transcript) {
+        setTranscript(newMetadata.transcript);
+      }
+      if (newRawSummary) {
+        setRawSummaryText(newRawSummary);
+        return;
+      }
+
+      if (!(stream instanceof ReadableStream)) {
+        setError(actionError || "Failed to initialize streaming");
+        return;
       }
 
       setIsStreaming(true);
@@ -139,7 +148,6 @@ export default function Home() {
         summaryId || "",
         bulletText.trim()
       );
-      console.log("Annotation result:", claimDetails);
       if (claimDetails) {
         setSelectedClaimData(claimDetails);
         setCachedClaims((prevClaims) => [

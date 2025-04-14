@@ -4,10 +4,10 @@ import { VideoSummary } from "@/types";
 
 type VideoSummaryData = Omit<
   VideoSummary,
-  "_id" | "claims" | "rawSummary" | "createdAt" | "updatedAt"
+  "_id" | "rawSummary" | "createdAt" | "updatedAt"
 >;
 
-export async function saveVideoMetadata(
+export async function createVideoData(
   data: VideoSummaryData
 ): Promise<VideoSummary> {
   await dbConnect();
@@ -49,5 +49,26 @@ export async function updateVideoSummary(id: string, rawSummary: string) {
     } else console.log("Video summary updated successfully with raw summary");
   } catch (error: any) {
     console.error(`Error updating summary ${id} in DB function:`, error);
+  }
+}
+
+export async function findSummaryByVideoId(
+  videoId: string
+): Promise<VideoSummary | null> {
+  await dbConnect();
+  try {
+    const videoSummary = await VideoSummaryModel.findOne({ videoId })
+      .lean<VideoSummary>() // lean() does not return correct types https://github.com/Automattic/mongoose/issues/13523
+      .exec();
+
+    if (!videoSummary) return null;
+
+    return videoSummary as VideoSummary;
+  } catch (error: any) {
+    console.error(
+      `Database error finding summary for video ${videoId}:`,
+      error
+    );
+    throw new Error("Failed to query database for summary.");
   }
 }

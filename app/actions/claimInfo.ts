@@ -12,22 +12,23 @@ export async function annotateClaim(
   rawClaim: string
 ): Promise<Claim> {
   try {
+    // Check database for existing claim
     const existingClaim = await findClaimByRawClaim(rawClaim, summaryId);
     if (existingClaim) {
-      console.log("Found existing claim");
       return existingClaim;
     }
 
     const formattedTranscript = JSON.stringify(
       formatTranscriptTimestamps(transcript)
     );
-
     const claimData = await llmAnnotateClaim(
       formattedTranscript,
       rawSummary,
       rawClaim
     );
+
     const savedClaim = await createClaim(summaryId, claimData);
+
     return savedClaim;
   } catch (error) {
     console.error(`Error processing/updating a claim:`, error);

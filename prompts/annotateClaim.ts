@@ -29,7 +29,7 @@ Return your output in the following JSON format:
 
 \`\`\`json
 {
-  "claim": "string",
+  "enhancedClaim": "string",
   "explanation": "string",
   "quotes": [
     {

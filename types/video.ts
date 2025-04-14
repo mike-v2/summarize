@@ -3,6 +3,7 @@ import { Summary } from "@/types";
 export type VideoMetadata = {
   id: string;
   title: string;
+  transcript: YoutubeTranscriptSegment[];
   description: string;
   publishedAt: string;
   duration?: string;

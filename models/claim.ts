@@ -23,7 +23,7 @@ const claimSchema = new Schema<Claim>(
   {
     summaryId: {
       type: Schema.Types.ObjectId,
-      ref: "VideoSummary",
+      ref: "Summary",
       required: true,
     },
     rawClaim: { type: String, required: true },

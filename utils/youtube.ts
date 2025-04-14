@@ -10,7 +10,7 @@ const youtubeUrlSchema = z.string().refine((url) => {
 }, "Please enter a valid YouTube URL");
 
 // Extract video ID from YouTube URL
-function extractVideoId(url: string): string | null {
+export function extractVideoId(url: string): string | null {
   try {
     const urlObj = new URL(url);
     if (urlObj.hostname === "youtu.be") {
@@ -36,7 +36,6 @@ function extractVideoId(url: string): string | null {
 type TranscriptResponse = {
   success: boolean;
   data?: {
-    videoId: string;
     transcript: YoutubeTranscriptSegment[];
   };
   error?: string;
@@ -96,6 +95,18 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
     const snippet = videoData.snippet;
     const contentDetails = videoData.contentDetails;
 
+    const transcriptResult = await getYoutubeTranscript(url);
+    if (
+      !transcriptResult.success ||
+      !transcriptResult.data?.transcript ||
+      !Array.isArray(transcriptResult.data.transcript)
+    ) {
+      return {
+        success: false,
+        error: transcriptResult.error || "Failed to fetch transcript",
+      };
+    }
+
     return {
       success: true,
       data: {
@@ -104,6 +115,7 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
         description: snippet.description,
         publishedAt: snippet.publishedAt,
         duration: contentDetails?.duration,
+        transcript: transcriptResult.data.transcript,
       },
     };
   } catch (error) {
@@ -120,9 +132,7 @@ export async function getVideoMetadata(url: string): Promise<MetadataResponse> {
   }
 }
 
-export async function getYoutubeTranscript(
-  url: string
-): Promise<TranscriptResponse> {
+async function getYoutubeTranscript(url: string): Promise<TranscriptResponse> {
   try {
     // Validate URL format
     const validatedUrl = youtubeUrlSchema.parse(url);
@@ -142,7 +152,6 @@ export async function getYoutubeTranscript(
     return {
       success: true,
       data: {
-        videoId,
         transcript,
       },
     };
