@@ -1,4 +1,10 @@
-import { TranscriptSegment, YoutubeTranscriptSegment } from "@/types";
+import { YoutubeTranscriptSegment } from "@/types";
+
+type TranscriptSegment = {
+  text: string;
+  timestamp: string;
+  duration: number;
+};
 
 // Helper function to format timestamp in HH:MM:SS format
 function formatTimestamp(seconds: number): string {

@@ -1,5 +1,4 @@
 import { Types } from "mongoose";
-import { ClaimData } from "@/types";
 
 export type VideoMetadata = {
   id: string;
@@ -15,23 +14,8 @@ export type YoutubeTranscriptSegment = {
   duration: number;
 };
 
-export type TranscriptSegment = {
-  text: string;
-  timestamp: string;
-  duration: number;
-};
-
-export type TranscriptResponse = {
-  success: boolean;
-  data?: {
-    videoId: string;
-    transcript: TranscriptSegment[];
-  };
-  error?: string;
-};
-
 export type VideoSummary = {
-  _id: string;
+  _id: Types.ObjectId | string;
   userId: string;
   videoId: string;
   url: string;
@@ -42,13 +26,4 @@ export type VideoSummary = {
   rawSummary?: string;
   createdAt: Date;
   updatedAt: Date;
-};
-
-export type VideoData = {
-  videoId: string;
-  title: string;
-  description: string;
-  publishedAt: Date;
-  duration: string;
-  claims?: ClaimData[];
 };
