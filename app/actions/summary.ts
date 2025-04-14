@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth/next";
 
 import { nextAuthOptions } from "@/config/nextAuthOptions";
 import { saveVideoMetadata, updateVideoSummary } from "@/lib/db/videoSummaries";
+import { createUserSummary } from "@/lib/db/userSummary";
 import { llmGenerateSummary } from "@/utils/llmCreateSummary";
 import { getYoutubeTranscript, getVideoMetadata } from "@/utils/youtube";
 import { VideoMetadata, YoutubeTranscriptSegment } from "@/types";
@@ -65,7 +66,8 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
       publishedAt: new Date(metadata.publishedAt),
       duration: String(metadata.duration),
     };
-    const savedSummaryPromise = saveVideoMetadata(summaryMetadata);
+    const savedSummary = await saveVideoMetadata(summaryMetadata);
+    createUserSummary(userId, savedSummary._id.toString());
 
     const combinedTranscript = transcriptData.transcript
       .map((item) => item.text)
@@ -93,7 +95,6 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
           await writer.write(value);
         }
 
-        const savedSummary = await savedSummaryPromise;
         updateVideoSummary(savedSummary._id.toString(), completeResponse);
       } catch (streamError) {
         console.error("Error processing summary stream:", streamError);
@@ -102,7 +103,6 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
       }
     })();
 
-    const savedSummary = await savedSummaryPromise;
     return {
       success: true,
       stream: readable,

@@ -1,6 +1,6 @@
 "use server";
 
-import { findClaimByRawClaim, saveClaim } from "@/lib/db/claims";
+import { findClaimByRawClaim, createClaim } from "@/lib/db/claims";
 import { Claim, YoutubeTranscriptSegment } from "@/types";
 import { llmAnnotateClaim } from "@/utils/llmAnnotateClaim";
 import { formatTranscriptTimestamps } from "@/utils/timestamp";
@@ -27,7 +27,7 @@ export async function annotateClaim(
       rawSummary,
       rawClaim
     );
-    const savedClaim = await saveClaim(summaryId, claimData);
+    const savedClaim = await createClaim(summaryId, claimData);
     return savedClaim;
   } catch (error) {
     console.error(`Error processing/updating a claim:`, error);

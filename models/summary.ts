@@ -1,0 +1,18 @@
+import mongoose, { Schema } from "mongoose";
+import { Summary } from "@/types";
+
+const summarySchema: Schema<Summary> = new Schema(
+  {
+    title: { type: String, required: true },
+    description: { type: String },
+    publishedAt: { type: Date },
+    rawSummary: { type: String },
+  },
+  {
+    timestamps: true,
+    discriminatorKey: "__t",
+  }
+);
+
+export default mongoose.models.Summary ||
+  mongoose.model<Summary>("Summary", summarySchema);

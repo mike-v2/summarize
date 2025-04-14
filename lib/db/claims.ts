@@ -52,7 +52,10 @@ export async function findClaimByRawClaim(
   }
 }
 
-export async function saveClaim(id: string, claim: ClaimData): Promise<Claim> {
+export async function createClaim(
+  id: string,
+  claim: ClaimData
+): Promise<Claim> {
   await dbConnect();
 
   try {
@@ -60,7 +63,6 @@ export async function saveClaim(id: string, claim: ClaimData): Promise<Claim> {
       ...claim,
       summaryId: new Types.ObjectId(id),
     };
-    console.log("saving claim:", claimToSave);
 
     const savedClaim = await ClaimModel.create(claimToSave);
     console.log(`Claim saved successfully for summary ${id}`);
