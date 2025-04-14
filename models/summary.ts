@@ -10,7 +10,7 @@ const summarySchema: Schema<Summary> = new Schema(
   },
   {
     timestamps: true,
-    discriminatorKey: "__t",
+    discriminatorKey: "kind",
   }
 );
 
