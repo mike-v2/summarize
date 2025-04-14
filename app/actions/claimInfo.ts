@@ -1,6 +1,6 @@
 "use server";
 
-import { saveClaim } from "@/lib/db/claims";
+import { findClaimByRawClaim, saveClaim } from "@/lib/db/claims";
 import { Claim, YoutubeTranscriptSegment } from "@/types";
 import { llmAnnotateClaim } from "@/utils/llmAnnotateClaim";
 import { formatTranscriptTimestamps } from "@/utils/timestamp";
@@ -9,9 +9,15 @@ export async function annotateClaim(
   transcript: YoutubeTranscriptSegment[],
   rawSummary: string,
   summaryId: string,
-  claim: string
+  rawClaim: string
 ): Promise<Claim> {
   try {
+    const existingClaim = await findClaimByRawClaim(rawClaim, summaryId);
+    if (existingClaim) {
+      console.log("Found existing claim");
+      return existingClaim;
+    }
+
     const formattedTranscript = JSON.stringify(
       formatTranscriptTimestamps(transcript)
     );
@@ -19,12 +25,12 @@ export async function annotateClaim(
     const claimData = await llmAnnotateClaim(
       formattedTranscript,
       rawSummary,
-      claim
+      rawClaim
     );
     const savedClaim = await saveClaim(summaryId, claimData);
     return savedClaim;
   } catch (error) {
-    console.error(`Error processing/updating claims:`, error);
+    console.error(`Error processing/updating a claim:`, error);
     throw error;
   }
 }

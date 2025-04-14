@@ -12,7 +12,8 @@ export type Quote = {
 };
 
 export type ClaimData = {
-  claim: string;
+  rawClaim: string;
+  enhancedClaim: string;
   explanation: string;
   quotes: Quote[];
   timestamp: string;

@@ -118,7 +118,7 @@ function DataView({ claim }: { claim: Claim }) {
       <div className="mb-6">
         <h3 className="font-medium mb-1">Claim:</h3>
         <p className="bg-yellow-100 p-2 rounded text-sm text-gray-800">
-          {claim.claim}
+          {claim.enhancedClaim}
         </p>
         <p className="text-xs text-gray-500 mt-1">
           Timestamp: {claim.timestamp}

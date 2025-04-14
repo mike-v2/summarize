@@ -10,13 +10,13 @@ import { openAIClient } from "@/config/llmClient";
 export async function llmAnnotateClaim(
   transcript: string,
   summary: string,
-  bulletPoint: string
+  rawClaim: string
 ): Promise<ClaimData> {
   const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
     { role: "system", content: ANNOTATE_CLAIM_INSTRUCTIONS },
     {
       role: "user",
-      content: createAnnotateClaimPrompt(transcript, summary, bulletPoint),
+      content: createAnnotateClaimPrompt(transcript, summary, rawClaim),
     },
   ];
 
@@ -32,7 +32,8 @@ export async function llmAnnotateClaim(
 
   try {
     const parsedJson = JSON.parse(content as string);
-    return parsedJson as ClaimData;
+    const claimData = { ...parsedJson, rawClaim };
+    return claimData as ClaimData;
   } catch (error) {
     console.error("Failed to parse LLM response as JSON:", error);
     throw new Error("Could not parse annotation response from LLM.");
