@@ -1,15 +1,8 @@
-import mongoose, { Schema, Types } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 import { VideoSummary } from "@/types";
 
 const videoSummarySchema: Schema<VideoSummary> = new Schema(
   {
-    userId: [
-      {
-        type: Types.ObjectId,
-        ref: "User",
-        required: true,
-      },
-    ],
     videoId: { type: String, required: true, index: true },
     url: { type: String, required: true },
     title: { type: String, required: true },

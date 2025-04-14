@@ -58,7 +58,6 @@ export async function generateVideoSummary(url: string): Promise<ActionResult> {
 
     // Save summary to DB (initially just metadata)
     const summaryMetadata = {
-      userId,
       videoId: transcriptData.videoId,
       url,
       title: metadata.title,

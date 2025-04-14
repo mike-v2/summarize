@@ -14,15 +14,17 @@ export type YoutubeTranscriptSegment = {
   duration: number;
 };
 
-export type VideoSummary = {
-  _id: Types.ObjectId | string;
-  userId: string;
+export type VideoSummary = Summary & {
   videoId: string;
   url: string;
+  duration: string;
+};
+
+export type Summary = {
+  _id: Types.ObjectId | string;
   title: string;
   description: string;
-  publishedAt: Date;
-  duration: string;
+  publishedAt?: Date;
   rawSummary?: string;
   createdAt: Date;
   updatedAt: Date;

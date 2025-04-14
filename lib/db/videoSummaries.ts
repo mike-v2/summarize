@@ -51,28 +51,3 @@ export async function updateVideoSummary(id: string, rawSummary: string) {
     console.error(`Error updating summary ${id} in DB function:`, error);
   }
 }
-
-export async function findLatestVideoSummaryByUrl(
-  userId: string,
-  url: string
-): Promise<VideoSummary | null> {
-  await dbConnect();
-  try {
-    const latestSummary = await VideoSummaryModel.findOne({
-      userId: userId,
-      url: url,
-    })
-      .sort({ createdAt: -1 }) // Get the most recent one
-      .lean()
-      .exec();
-
-    return latestSummary as VideoSummary | null;
-  } catch (error: any) {
-    console.error(
-      `Database error finding latest summary for user ${userId} and url ${url}:`,
-      error
-    );
-    // Re-throw or handle as appropriate for your error strategy
-    throw new Error("Failed to query database for latest summary.");
-  }
-}
