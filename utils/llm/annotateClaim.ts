@@ -20,22 +20,22 @@ export async function llmAnnotateClaim(
     },
   ];
 
-  const response = await openAIClient.chat.completions.create({
-    model: "gpt-4o-mini",
-    messages,
-    response_format: {
-      type: "json_object",
-    },
-  });
-
-  const content = response.choices[0].message.content;
-
   try {
+    const response = await openAIClient.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages,
+      response_format: {
+        type: "json_object",
+      },
+    });
+
+    const content = response.choices[0].message.content;
+
     const parsedJson = JSON.parse(content as string);
     const claimData = { ...parsedJson, rawClaim };
     return claimData as ClaimData;
   } catch (error) {
-    console.error("Failed to parse LLM response as JSON:", error);
-    throw new Error("Could not parse annotation response from LLM.");
+    console.error("Claim annotation failed:", error);
+    throw new Error("Claim annotation failed.");
   }
 }

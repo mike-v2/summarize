@@ -10,13 +10,19 @@ export async function llmGenerateSummary(
     { role: "user", content: text },
   ];
 
-  const stream = await deepseekClient.chat.completions.create({
-    model: "deepseek-chat",
-    messages,
-    stream: true,
-  });
+  let stream: AsyncIterable<any>;
 
-  // Convert to a ReadableStream for Server Actions
+  try {
+    stream = await deepseekClient.chat.completions.create({
+      model: "deepseek-chat",
+      messages,
+      stream: true,
+    });
+  } catch (error) {
+    console.error("Summary generation failed:", error);
+    throw new Error("Summary generation failed.");
+  }
+
   const encoder = new TextEncoder();
   return new ReadableStream({
     async start(controller) {
