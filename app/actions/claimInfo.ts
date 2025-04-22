@@ -2,7 +2,7 @@
 
 import { findClaimByRawClaim, createClaim } from "@/lib/db/claims";
 import { Claim, YoutubeTranscriptSegment } from "@/types";
-import { llmAnnotateClaim } from "@/utils/llmAnnotateClaim";
+import { llmAnnotateClaim } from "@/utils/llm/annotateClaim";
 import { formatTranscriptTimestamps } from "@/utils/timestamp";
 
 export async function annotateClaim(

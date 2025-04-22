@@ -9,7 +9,7 @@ import {
   findSummaryByVideoId,
 } from "@/lib/db/videoSummaries";
 import { createUserSummary } from "@/lib/db/userSummary";
-import { llmGenerateSummary } from "@/utils/llmCreateSummary";
+import { llmGenerateSummary } from "@/utils/llm/createSummary";
 import { getVideoMetadata, extractVideoId } from "@/utils/youtube";
 import { VideoMetadata, YoutubeTranscriptSegment } from "@/types";
 
